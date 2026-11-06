@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-dark-green: #0f4d3c;
+    --color-medium-green: #2c7a5f;
+    --color-open: #198b51;
+    --color-closed: #ef4444;
+    --color-body: #374151;
+    --color-light-text: #6b7280;
+    --color-card-bg: #ffffff;
+    --color-page-bg: #f8faf9;
+    --color-mint: #eaf3ee;
+    --color-border: #dce7e1;
+    font-family: 'Inter', sans-serif;
+    color: var(--color-body);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    font-family: inherit;
+    background: var(--color-page-bg);
+  }
+
+  button, a, input, select, textarea {
+    font: inherit;
+  }
+
+  h1, h2, h3 {
+    font-family: inherit;
+    font-weight: bold;
+    letter-spacing: 0;
+    text-wrap: balance;
+  }
+
+  .site-card {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 16px rgba(15, 77, 60, 0.045);
+  }
+
+  .breadcrumb {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-light-text);
+    font-size: 0.75rem;
+  }
+
+  .holiday-advisory {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.125rem 0 1.5rem;
+    border-left: 4px solid #fbbf24;
+    border-radius: 0.25rem;
+    background: #fffbeb;
+    padding: 0.875rem 1rem;
+    color: #92400e;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .bullet-list {
+    margin: 0.5rem 0;
+    padding-left: 1.2rem;
+    list-style: disc;
+  }
+
+  .bullet-list li {
+    margin-bottom: 0.3rem;
+    line-height: 1.5;
+  }
+
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgba(44, 122, 95, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+.public-page-shell {
+  background-color: var(--color-page-bg);
+  color: var(--color-body);
+}
+
+.site-section-bg {
+  background-color: var(--color-page-bg);
+  background-image: linear-gradient(180deg, #ffffff 0%, var(--color-page-bg) 100%);
+}
+
+.map-dark-tiles {
+  filter: grayscale(0.65) invert(0.88) hue-rotate(180deg) brightness(0.84) contrast(0.95);
+}
+
+.route-start-pin-mode,
+.route-start-pin-mode .leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+.route-live-marker {
+  animation: route-location-pulse 2s ease-out infinite;
+}
+
+.route-user-marker {
+  position: relative;
+}
+
+.route-heading-arrow {
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid #fff;
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.45));
+}
+
+@keyframes route-location-pulse {
+  0% { stroke-width: 3; }
+  50% { stroke-width: 6; }
+  100% { stroke-width: 3; }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes soft-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.header-enter { animation: page-enter 450ms ease-out both; }
+.hero-enter { animation: page-enter 650ms 100ms ease-out both; }
+.hero-actions { animation: page-enter 650ms 220ms ease-out both; }
+.clinic-info-enter { animation: page-enter 550ms 280ms ease-out both; }
+.services-enter { animation: page-enter 600ms 120ms ease-out both; }
+.route-enter { animation: route-enter 500ms 350ms ease-out both; }
+.hero-section-enter { animation: soft-enter 500ms ease-out both; }
+.public-view-enter { animation: soft-enter 380ms ease-out both; }
+.section-enter { animation: soft-enter 520ms ease-out both; }
+.footer-enter { animation: soft-enter 500ms 100ms ease-out both; }
+.admin-panel-enter { animation: soft-enter 420ms ease-out both; }
+.admin-tab-enter { animation: soft-enter 280ms ease-out both; }
+.reveal-card { animation: card-enter 420ms ease-out both; }
+.service-row { animation: page-enter 500ms ease-out both; }
+.service-row:nth-child(2) { animation-delay: 50ms; }
+.service-row:nth-child(3) { animation-delay: 100ms; }
+.service-row:nth-child(4) { animation-delay: 150ms; }
+.service-row:nth-child(5) { animation-delay: 200ms; }
+.reveal-stagger > :nth-child(2) { animation-delay: 50ms; }
+.reveal-stagger > :nth-child(3) { animation-delay: 100ms; }
+.reveal-stagger > :nth-child(4) { animation-delay: 150ms; }
+.reveal-stagger > :nth-child(5) { animation-delay: 200ms; }
+
+button, a {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.lift-on-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(23, 58, 55, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
