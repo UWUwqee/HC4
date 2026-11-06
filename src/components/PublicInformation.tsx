@@ -49,7 +49,7 @@ export const PublicInformation: React.FC = () => {
           <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {holidayAdvisory}</div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid items-start gap-3 md:grid-cols-2">
           <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
             <div className="space-y-1 text-xs text-[#374151]">
