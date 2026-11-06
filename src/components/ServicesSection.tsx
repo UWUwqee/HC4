@@ -32,7 +32,7 @@ export const ServicesSection: React.FC = () => {
     [siteContent.services],
   );
 
-  const selectedService = serviceCards.find((service) => service.id === selectedServiceId) ?? serviceCards[0];
+  const selectedService = serviceCards.find((service) => service.id === selectedServiceId) ?? null;
 
   return (
     <section id="services" aria-labelledby="services-title" className="site-section-bg section-enter border-b border-[#dce7e1] py-4 sm:py-6">
