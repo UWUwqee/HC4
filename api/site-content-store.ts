@@ -136,7 +136,7 @@ export function validateSiteContent(
     if (typeof value[field] !== 'string' || value[field].length > 5000) return null;
   }
   if (contentType === 'service') {
-    if (!['maternity', 'checkup', 'family_planning', 'vaccination'].includes(String(value.category))) return null;
+    if (!['maternity', 'checkup', 'family_planning', 'vaccination', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'].includes(String(value.category))) return null;
     for (const field of ['keyPersonnel', 'requirements', 'requirementsFil']) {
       if (!Array.isArray(value[field]) || value[field].length > 50
         || value[field].some((entry) => typeof entry !== 'string' || entry.length > 300)) return null;

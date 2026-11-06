@@ -6,70 +6,31 @@ import familyPlanningImage from '../assets/images/FAMILYPLANNING.jpg';
 import maternityImage from '../assets/images/MATERNITY.png';
 import vaccinationImage from '../assets/images/VACCINATION.jpg';
 
-const serviceVisuals = [
-  {
-    id: 'checkup',
-    category: 'checkup',
-    title: 'Consultation',
-    titleFil: 'Konsultasyon',
-    image: checkupImage,
-    imageAlt: 'A health worker speaking with a patient',
-  },
-  {
-    id: 'family_planning',
-    category: 'family_planning',
-    title: 'Family planning',
-    titleFil: 'Family planning',
-    image: familyPlanningImage,
-    imageAlt: 'Family standing together',
-  },
-  {
-    id: 'maternity',
-    category: 'maternity',
-    title: 'Prenatal and postnatal care',
-    titleFil: 'Prenatal at postnatal',
-    image: maternityImage,
-    imageAlt: 'A pregnant patient receiving care from a health worker',
-  },
-  {
-    id: 'vaccination',
-    category: 'vaccination',
-    title: 'Vaccination',
-    titleFil: 'Bakuna',
-    image: vaccinationImage,
-    imageAlt: 'Vaccination service illustration',
-  },
-] as const;
+const serviceVisuals = {
+  checkup: { image: checkupImage, imageAlt: 'A health worker speaking with a patient' },
+  family_planning: { image: familyPlanningImage, imageAlt: 'Family standing together' },
+  maternity: { image: maternityImage, imageAlt: 'A pregnant patient receiving care from a health worker' },
+  vaccination: { image: vaccinationImage, imageAlt: 'Vaccination service illustration' },
+  immunization: { image: vaccinationImage, imageAlt: 'Immunization service illustration' },
+  dental: { image: checkupImage, imageAlt: 'Dental service illustration' },
+  tb_dots: { image: checkupImage, imageAlt: 'TB-DOTS service illustration' },
+  pen_meds: { image: checkupImage, imageAlt: 'Medication service illustration' },
+  pap_smear: { image: maternityImage, imageAlt: 'Pap smear service illustration' },
+} as const;
 
 export const ServicesSection: React.FC = () => {
   const { language, siteContent } = useHealthCenter();
   const isFilipino = language === 'fil';
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
-  const serviceCards = useMemo(() => {
-    const map = new Map(siteContent.services.map((service) => [service.category, service]));
-    return serviceVisuals.map((visual) => ({
-      ...visual,
-      details: map.get(visual.category) ?? {
-        id: visual.id,
-        category: visual.category,
-        title: visual.title,
-        titleFil: visual.titleFil,
-        shortDesc: visual.title,
-        shortDescFil: visual.titleFil,
-        fullDesc: 'Service details are provided by the health center team.',
-        fullDescFil: 'Ang detalye ng serbisyong ito ay ibinibigay ng team ng health center.',
-        schedule: '',
-        scheduleFil: '',
-        location: '',
-        keyPersonnel: [],
-        requirements: [],
-        requirementsFil: [],
-        badge: '',
-        badgeFil: '',
-      },
-    }));
-  }, [siteContent.services]);
+  const serviceCards = useMemo(
+    () => siteContent.services.map((service) => ({
+      ...service,
+      image: serviceVisuals[service.category as keyof typeof serviceVisuals]?.image ?? checkupImage,
+      imageAlt: serviceVisuals[service.category as keyof typeof serviceVisuals]?.imageAlt ?? 'Clinic service illustration',
+    })),
+    [siteContent.services],
+  );
 
   const selectedService = serviceCards.find((service) => service.id === selectedServiceId) ?? serviceCards[0];
 
@@ -123,17 +84,17 @@ export const ServicesSection: React.FC = () => {
             <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">{isFilipino ? 'Detalye ng serbisyo' : 'Service details'}</div>
             <h3 className="text-xl font-bold text-[#0f4d3c]">{isFilipino ? selectedService.titleFil : selectedService.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-[#374151]">
-              {isFilipino ? selectedService.details.fullDescFil : selectedService.details.fullDesc}
+              {isFilipino ? selectedService.fullDescFil : selectedService.fullDesc}
             </p>
-            {selectedService.details.schedule && (
+            {selectedService.schedule && (
               <p className="mt-3 text-sm text-[#374151]">
                 <span className="font-bold text-[#0f4d3c]">{isFilipino ? 'Iskedyul:' : 'Schedule:'}</span>{' '}
-                {isFilipino ? selectedService.details.scheduleFil || selectedService.details.schedule : selectedService.details.schedule}
+                {isFilipino ? selectedService.scheduleFil || selectedService.schedule : selectedService.schedule}
               </p>
             )}
-            {selectedService.details.requirements.length > 0 && (
+            {selectedService.requirements.length > 0 && (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#374151]">
-                {(isFilipino ? selectedService.details.requirementsFil : selectedService.details.requirements).map((item) => (
+                {(isFilipino ? selectedService.requirementsFil : selectedService.requirements).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
