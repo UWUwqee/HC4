@@ -1,8 +1,8 @@
 import React from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { CalendarDays, ArrowDown, Clock3, MapPin } from 'lucide-react';
-import { CLINIC_ADDRESS } from '../data/masikapClinicInfo';
-import centerPhoto from '../assets/images/MASIKAP.png';
+import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
+import centerPhoto from '../assets/images/DELFIN.png';
 
 export const Hero: React.FC = () => {
   const { language, setActiveSection, setBookingModalOpen, clinicOpen, clinicStatusError, appointmentRequestAvailability, siteContent } = useHealthCenter();
@@ -18,13 +18,13 @@ export const Hero: React.FC = () => {
   return (
     <section id="overview" className="hero-section-enter bg-[#0f4d3c] text-white">
       <div className="relative min-h-[250px] sm:min-h-[280px] flex items-center overflow-hidden border-b border-white/10">
-        <img src={centerPhoto} alt="Masikap Health Center exterior" className="absolute inset-0 h-full w-full object-cover object-center" />
+        <img src={centerPhoto} alt="Delfin Salonga Health Center exterior" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-[#0f4d3c]/88" />
         <div className="relative w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-8 sm:py-10">
           <div className="flex w-full flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
             <div className="max-w-2xl">
               <h1 className="hero-enter max-w-xl text-2xl sm:text-3xl lg:text-4xl font-bold leading-[1.08] text-white">
-                Masikap Health Center
+                Delfin Salonga Health Center
               </h1>
               <div className="hero-actions mt-4 flex flex-wrap gap-2.5">
                 {bookingEnabled && <button onClick={() => setBookingModalOpen(true)} title="Request an appointment" className="inline-flex min-h-11 items-center gap-2 bg-white text-[#0f4d3c] px-4 py-2.5 text-sm font-bold rounded-sm border border-white hover:bg-[#eaf3ee] transition-colors">

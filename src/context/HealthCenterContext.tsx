@@ -29,15 +29,15 @@ type TranslationSet = Record<keyof (typeof TRANSLATIONS_EN)['en'], string>;
 
 const TRANSLATIONS_EN = {
   en: {
-    brand: 'Masikap Health Center',
-    contactTitle: 'Visit Masikap Health Center',
+    brand: 'Delfin Salonga Health Center',
+    contactTitle: 'Visit Delfin Salonga Health Center',
     newsTitle: 'Health center updates',
     newsSubtitle: 'Announcements and public health advisories.',
     newsSearchPlaceholder: 'Search updates...',
     btnReadArticle: 'Read update',
     btnCloseArticle: 'Close',
     outreachTitle: 'Community health programs',
-    outreachSubtitle: 'Current outreach programs from Masikap Health Center.',
+    outreachSubtitle: 'Current outreach programs from Delfin Salonga Health Center.',
     formFullName: 'Full name',
     formPhone: 'Phone number',
     formEmail: 'Email address',
@@ -59,15 +59,15 @@ const TRANSLATIONS_EN = {
 
 const TRANSLATIONS_FIL = {
   fil: {
-    brand: 'Masikap Health Center',
-    contactTitle: 'Bumisita sa Masikap Health Center',
+    brand: 'Delfin Salonga Health Center',
+    contactTitle: 'Bumisita sa Delfin Salonga Health Center',
     newsTitle: 'Mga update ng health center',
     newsSubtitle: 'Mga anunsyo at pampublikong pabatid pangkalusugan.',
     newsSearchPlaceholder: 'Maghanap ng mga update...',
     btnReadArticle: 'Basahin',
     btnCloseArticle: 'Isara',
     outreachTitle: 'Mga programang pangkalusugan sa komunidad',
-    outreachSubtitle: 'Mga kasalukuyang programa ng Masikap Health Center.',
+    outreachSubtitle: 'Mga kasalukuyang programa ng Delfin Salonga Health Center.',
     formFullName: 'Buong pangalan',
     formPhone: 'Numero ng telepono',
     formEmail: 'Email address',
@@ -155,7 +155,7 @@ function appointmentFromApi(row: AppointmentApiRow): PatientAppointment {
 
 export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>(() => (
-    localStorage.getItem('masikap-language') === 'fil' ? 'fil' : 'en'
+    localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
   ));
   const [activeSection, setActiveSectionState] = useState('overview');
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT);
@@ -174,7 +174,7 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
   const setActiveSection = (section: string) => setActiveSectionState(section);
   const toggleLanguage = () => setLanguage((current) => {
     const next = current === 'en' ? 'fil' : 'en';
-    localStorage.setItem('masikap-language', next);
+    localStorage.setItem('delfin-salonga-language', next);
     return next;
   });
   const setBookingModalOpen = (open: boolean) => {

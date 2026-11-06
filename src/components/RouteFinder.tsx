@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Bike, CarFront, ChevronDown, ChevronUp, ExternalLink, LocateFixed, MapPin, PersonStanding, RefreshCw } from 'lucide-react';
-import { CLINIC_ADDRESS } from '../data/masikapClinicInfo';
+import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
 import { useHealthCenter } from '../context/HealthCenterContext';
 
 type TravelMode = 'walking' | 'bicycling' | 'driving' | 'motorcycle';
@@ -55,7 +55,7 @@ function distanceBetween(a: Position, b: Position) {
 
 function maneuverInstruction(step: RouteStep) {
   if (step.maneuver.type === 'depart') return step.name ? `Head out on ${step.name}.` : 'Head toward the health center.';
-  if (step.maneuver.type === 'arrive') return 'Arrive at Masikap Health Center.';
+  if (step.maneuver.type === 'arrive') return 'Arrive at Delfin Salonga Health Center.';
   const action = step.maneuver.type === 'roundabout' ? 'Enter the roundabout' : `Turn ${step.maneuver.modifier?.replace('-', ' ') ?? 'ahead'}`;
   return step.name ? `${action} onto ${step.name}.` : `${action}.`;
 }
@@ -100,7 +100,7 @@ export const RouteFinder: React.FC = () => {
     tiles.addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     destinationMarkerRef.current = L.circleMarker(destination, { radius: 9, color: '#fff', weight: 3, fillColor: '#b84236', fillOpacity: 1 })
-      .addTo(map).bindTooltip('Masikap Health Center');
+      .addTo(map).bindTooltip('Delfin Salonga Health Center');
     map.on('click', (event) => {
       if (!pinStartModeRef.current) return;
       manualOriginRef.current = true;
@@ -278,7 +278,7 @@ export const RouteFinder: React.FC = () => {
           <header className="flex items-center justify-between gap-2 bg-[#173a37] px-3 py-2.5 text-white">
             <div className="min-w-0">
               <h2 className="truncate text-sm font-bold">{isFilipino ? 'Mag-navigate sa health center' : 'Navigate to health center'}</h2>
-              <p className="truncate text-[11px] text-white/75">Masikap Health Center · {clinicAddress}</p>
+              <p className="truncate text-[11px] text-white/75">Delfin Salonga Health Center · {clinicAddress}</p>
               <p className="mt-1 flex items-center gap-1.5 text-[10px] text-white/80"><span className={`h-1.5 w-1.5 rounded-full ${origin?.source === 'manual' ? 'bg-teal-300' : origin ? 'bg-emerald-300' : 'bg-slate-400'} ${origin?.source === 'gps' ? 'animate-pulse' : ''}`} />{locationStatus}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">

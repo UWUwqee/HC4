@@ -2,6 +2,7 @@ import React, { FormEvent, useState } from 'react';
 import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, signInAnonymously, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ArrowRight, LockKeyhole, UserRound } from 'lucide-react';
 import { auth } from '../firebase';
+import delfinLogo from '../assets/images/DELFIN.png';
 
 export const AuthScreen: React.FC = () => {
   const [name, setName] = useState('');
@@ -122,8 +123,11 @@ export const AuthScreen: React.FC = () => {
       <section className="mx-auto w-full max-w-md border border-[#d9e1dc] bg-[#fbfcfa] shadow-[0_18px_50px_rgba(23,58,55,0.12)]">
         <div className="border-b border-[#dfe6e1] px-6 py-5 sm:px-8">
           <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#dfe6e1] bg-white shadow-sm">
+              <img src={delfinLogo} alt="Delfin Salonga Health Center logo" className="h-full w-full object-cover" />
+            </div>
             <div>
-              <div className="text-sm font-bold">Masikap Health Center</div>
+              <div className="text-sm font-bold">Delfin Salonga Health Center</div>
             </div>
           </div>
         </div>

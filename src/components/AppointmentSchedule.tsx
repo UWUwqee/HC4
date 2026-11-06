@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
-import { CLINIC_ADDRESS } from '../data/masikapClinicInfo';
+import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
 
 interface ScheduleSlot {
   date: string;

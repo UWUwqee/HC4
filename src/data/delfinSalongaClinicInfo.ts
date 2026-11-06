@@ -1,6 +1,6 @@
-export const CLINIC_ADDRESS = 'P. Rosales Street, Barangay Sta. Ana, Pateros, 1620, Metro Manila, Philippines';
+export const CLINIC_ADDRESS = 'Emerald Avenue, Emerald Subdivision, Barangay Sto. Rosario-Kanluran (or Sto. Rosario-Silangan), Pateros, Metro Manila, Philippines';
 
-export const MASIKAP_SERVICES = [
+export const DELFIN_SALONGA_SERVICES = [
   {
     id: 'checkup',
     category: 'checkup',
@@ -76,17 +76,50 @@ export const MASIKAP_SERVICES = [
 ] as const;
 
 export const COVERAGE_AREAS = [
-  'Alley 4',
-  'Alley 5',
-  'Alley 6',
-  'Alley 7',
-  'Alley 8',
-  'Alley 1',
-  'Alley 2',
-  'P. Rosales',
-  'Carlos Compound',
-  'Panday Paltok',
-  'De Borja',
-  'Donya Esperanza',
-  'San Roque',
+  'Sto. Rosario-Kanluran',
+  'Sto. Rosario-Silangan',
 ];
+
+export const CLINIC_SCHEDULE = [
+  {
+    day: 'Monday',
+    am: 'Medical check-up, weighing, family planning, prenatal check-up',
+    pm: 'Medical check-up, family planning, prenatal check-up',
+  },
+  {
+    day: 'Tuesday',
+    am: 'Medical check-up, weighing, T.B. dots, pen meds, dental',
+    pm: 'Medical check-up, family planning, weighing',
+  },
+  {
+    day: 'Wednesday',
+    am: 'Immunization day',
+    pm: 'Prenatal check-up, family planning',
+  },
+  {
+    day: 'Thursday',
+    am: 'Medical check-up, dental, pen meds, pap smear, family planning',
+    pm: 'Medical check-up, family planning, weighing',
+  },
+  {
+    day: 'Friday',
+    am: 'Medical check-up, family planning, weighing',
+    pm: 'Medical check-up, family planning, weighing',
+  },
+] as const;
+
+export const STAFF_ROSTER = [
+  { name: 'Jennifer G. Alejandro', role: 'Rural Health Physician' },
+  { name: 'Ms. Sylvia T. De Mesa', role: 'Administrative / Designated Aide' },
+  { name: 'Mr. Jaime M. Tangco, DMD', role: 'Dentist' },
+  { name: 'Ms. Marites F. Dizon, RM', role: 'Midwife II' },
+  { name: 'Mr. Vincent Alderman T. Sapo, RN', role: 'Nurse III' },
+  { name: 'Ms. Emelda P. Codilan', role: 'Midwife' },
+  { name: 'Ms. Jocelyn A. Villamor', role: 'Utility Worker' },
+  { name: 'Ms. Gloria G. Berame', role: 'Barangay Nutrition Scholar (BNS)' },
+  { name: 'Ms. Rhea T. Baldomer', role: 'B.H.W' },
+  { name: 'Ms. Mimi B. Dela Cruz', role: 'B.H.W' },
+  { name: 'Mr. Warren Villamen', role: 'Nurse' },
+] as const;
+
+export const DENTAL_SCHEDULE = 'Thursday - Friday';

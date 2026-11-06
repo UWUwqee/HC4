@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { Clock, MapPin, CalendarDays } from 'lucide-react';
-import { CLINIC_ADDRESS, COVERAGE_AREAS } from '../data/masikapClinicInfo';
+import { CLINIC_ADDRESS, COVERAGE_AREAS, DENTAL_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 
 export const ContactSection: React.FC = () => {
   const { t, language, setBookingModalOpen, clinicOpen, appointmentRequestAvailability } = useHealthCenter();
@@ -42,10 +42,21 @@ export const ContactSection: React.FC = () => {
           <div className="flex gap-4">
             <MapPin className="w-5 h-5 text-teal-800 shrink-0 mt-1" />
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Masikap Health Center</h3>
+              <h3 className="text-sm font-bold text-slate-900">Delfin Salonga Health Center</h3>
               <p className="mt-1 text-sm text-slate-600">{CLINIC_ADDRESS}</p>
               <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Mga lugar na pinaglilingkuran' : 'Service areas'}</p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">{COVERAGE_AREAS.join(', ')}</p>
+              <div className="mt-3 border-t border-slate-200 pt-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-700">{language === 'fil' ? 'Staff' : 'Staff'}</p>
+                <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                  {STAFF_ROSTER.map((person) => (
+                    <li key={`${person.name}-${person.role}`}>
+                      <span className="font-medium text-slate-800">{person.name}</span> — {person.role}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-sm text-slate-600">{language === 'fil' ? 'Dental Schedule: Huwebes - Biyernes' : `Dental schedule: ${DENTAL_SCHEDULE}`}</p>
+              </div>
             </div>
           </div>
 
@@ -53,7 +64,8 @@ export const ContactSection: React.FC = () => {
             <Clock className="w-5 h-5 text-teal-800 shrink-0 mt-1" />
             <div>
               <h3 className="text-sm font-bold text-slate-900">{language === 'fil' ? 'Kawani at mga serbisyo' : 'Staff and services'}</h3>
-              <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Duty ng medical staff: 7am-4pm (8 oras).' : 'Medical staff duty: 7am-4pm (8 hours).'}</p>
+              <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Oras ng klinika: 7:00 am - 4:00 pm, Lunes-Biyernes.' : 'Clinic time: 7:00 am - 4:00pm Mon-Fri'}</p>
+              <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Dental: Huwebes at Biyernes, 7:00 am - 4:00 pm.' : 'Dental: Thursday and Friday 7:00am - 4pm'}</p>
               <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Konsultasyon, prenatal at postnatal, family planning, at bakuna.' : 'Consultation, prenatal and postnatal care, family planning, and vaccination.'}</p>
               <p className="mt-1 text-sm text-slate-600">{language === 'fil' ? 'Maaaring may libreng gamot kung available sa center.' : 'Medicines may be provided at no cost when available at the center.'}</p>
             </div>

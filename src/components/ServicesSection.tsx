@@ -49,7 +49,7 @@ export const ServicesSection: React.FC = () => {
     <section id="services" aria-labelledby="services-title" className="site-section-bg section-enter border-b border-[#dce7e1] py-4 sm:py-6">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">Masikap Health Center</div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">Delfin Salonga Health Center</div>
           <h1 id="services-title" className="text-2xl font-bold text-[#0f4d3c] sm:text-3xl">
             {isFilipino ? 'Mga serbisyo' : 'Services'}
           </h1>

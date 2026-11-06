@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Stethoscope } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
@@ -82,6 +83,17 @@ export const PublicInformation: React.FC = () => {
                 ))}
               </ul>
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
+            <div className="mt-4 border-t border-[#e7eee9] pt-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2c7a5f]">{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</p>
+              <ul className="mt-2 space-y-2 text-[11px] leading-relaxed text-[#374151]">
+                {CLINIC_SCHEDULE.map((entry) => (
+                  <li key={entry.day}>
+                    <span className="font-bold text-[#0f4d3c]">{entry.day}:</span> {entry.am}
+                    {entry.pm && <span className="block text-[#4b5563]">PM: {entry.pm}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </section>
 
           <section className="site-card p-4">
@@ -92,7 +104,8 @@ export const PublicInformation: React.FC = () => {
               </ul>
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
             <div className="mt-3 space-y-3 border-t border-[#e7eee9] pt-3 text-xs leading-relaxed text-[#4b5563]">
-              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'Duty ng klinika:' : 'Clinic duty:'}</strong> {isFilipino ? 'Lunes-Biyernes, 7:00 AM-4:00 PM.' : 'Monday-Friday, 7:00 AM-4:00 PM.'}</p>
+              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'Duty ng klinika:' : 'Clinic duty:'}</strong> {isFilipino ? 'Lunes-Biyernes, 7:00 AM - 4:00 PM.' : 'Mon-Fri, 7:00 am - 4:00pm'}</p>
+              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'Dental:' : 'Dental:'}</strong> {isFilipino ? 'Huwebes at Biyernes, 7:00 am - 4:00 pm.' : 'Thursday and Friday, 7:00am - 4pm'}</p>
               <p><strong className="text-[#0f4d3c]">{isFilipino ? 'PhilHealth YAKAP:' : 'PhilHealth YAKAP:'}</strong> {isFilipino ? 'Maaaring makatanggap ang kwalipikadong miyembro ng hanggang PHP 20,000 na benepisyo. Maaaring may libreng gamot kung available sa health center.' : 'Eligible members may receive up to PHP 20,000 in benefits. Free medicines may be available at the health center.'}</p>
             </div>
           </section>
