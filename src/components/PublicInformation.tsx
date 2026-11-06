@@ -6,11 +6,7 @@ import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
   const isFilipino = language === 'fil';
-  const featuredServices = [
-    ...siteContent.services.slice(0, 4),
-    { id: 'dental-service', title: 'Dental service', titleFil: 'Serbisyong dental' },
-    { id: 'philhealth-yakap', title: 'PhilHealth YAKAP benefits', titleFil: 'Benepisyo sa PhilHealth YAKAP' },
-  ];
+  const featuredServices = siteContent.services.slice(0, 5);
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
