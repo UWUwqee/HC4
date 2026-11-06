@@ -6,7 +6,6 @@ import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
   const isFilipino = language === 'fil';
-  const featuredServices = siteContent.services.slice(0, 5);
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
@@ -60,12 +59,16 @@ export const PublicInformation: React.FC = () => {
           </section>
 
           <section className="site-card p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga serbisyo' : 'Services overview'}</h3>
-            {featuredServices.length > 0 ? (
-              <ul className="bullet-list text-sm text-[#374151]">
-                {featuredServices.map((service) => <li key={service.id}><strong>{isFilipino ? service.titleFil : service.title}</strong>{service.badge ? ` · ${isFilipino ? service.badgeFil : service.badge}` : ''}</li>)}
-              </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang nailathalang serbisyo.' : 'No services have been published yet.'}</p>}
+            <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</h3>
+            <div className="space-y-3 text-xs leading-relaxed text-[#374151]">
+              {CLINIC_SCHEDULE.map((entry) => (
+                <div key={entry.day} className="border-t border-[#e7eee9] pt-2 first:border-0 first:pt-0">
+                  <p className="font-bold text-[#0f4d3c]">{entry.day}</p>
+                  <p><strong>AM (7 AM - 11 AM):</strong> {entry.am}</p>
+                  <p><strong>PM (12 PM - 4 PM):</strong> {entry.pm}</p>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="site-card p-4">
@@ -83,22 +86,6 @@ export const PublicInformation: React.FC = () => {
                 ))}
               </ul>
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
-            <div className="mt-4 border-t border-[#e7eee9] pt-3">
-              <div className="overflow-hidden rounded-md border border-[#102f2e] bg-[#0f1f1c] text-white shadow-sm">
-                <div className="border-b border-white/10 bg-[#123b36] px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/90">
-                  {isFilipino ? 'Iskedyul ng serbisyo' : 'SERVICE SCHEDULE'}
-                </div>
-                <div className="space-y-2 px-3 py-3 text-[11px] leading-relaxed text-white/90">
-                  {CLINIC_SCHEDULE.map((entry) => (
-                    <div key={entry.day}>
-                      <div className="font-bold text-[#dff7f0]">{entry.day}:</div>
-                      <div className="pl-1 text-white/85">AM: {entry.am}</div>
-                      {entry.pm && <div className="pl-1 text-white/75">PM: {entry.pm}</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </section>
 
           <section className="site-card p-4">
