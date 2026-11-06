@@ -1,4 +1,4 @@
-export const CLINIC_ADDRESS = 'Emerald Avenue, Emerald Subdivision, Barangay Sto. Rosario-Kanluran (or Sto. Rosario-Silangan), Pateros, Metro Manila, Philippines';
+export const CLINIC_ADDRESS = 'Emerald Avenue, Emerald Subdivision, Brgy. Santo Rosario, Pateros, Metro Manila';
 
 export const DELFIN_SALONGA_SERVICES = [
   {
