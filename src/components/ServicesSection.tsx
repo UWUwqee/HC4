@@ -79,11 +79,14 @@ export const ServicesSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {siteContent.services.map((service) => {
             const image = serviceImages[service.category as keyof typeof serviceImages];
             const illustration = illustrationForService(service.category);
             const IllustrationIcon = illustration.Icon;
+            const serviceTitle = language === 'fil' ? service.titleFil : service.title;
+            const serviceDescription = language === 'fil' ? service.shortDescFil : service.shortDesc;
+            const hasDistinctDescription = serviceDescription.trim().toLowerCase() !== serviceTitle.trim().toLowerCase();
 
             return (
               <article
@@ -93,7 +96,7 @@ export const ServicesSection: React.FC = () => {
                 {image ? (
                   <img
                     src={image}
-                    alt={language === 'fil' ? service.titleFil : service.title}
+                    alt={serviceTitle}
                     loading="lazy"
                     decoding="async"
                     className="aspect-[16/9] w-full border-b border-[#dce7e1] object-cover"
@@ -111,19 +114,15 @@ export const ServicesSection: React.FC = () => {
                 )}
 
                 <div className="flex flex-1 flex-col p-4">
-                  <h3 className="text-base font-bold text-[#0f4d3c]">
-                    {language === 'fil' ? service.titleFil : service.title}
-                  </h3>
-                  <p className="mt-2 min-h-10 text-sm leading-relaxed text-[#6b7280]">
-                    {servicePreview(language === 'fil' ? service.shortDescFil : service.shortDesc)}
-                  </p>
+                  <h3 className="text-base font-bold leading-snug text-[#0f4d3c]">{serviceTitle}</h3>
+                  {hasDistinctDescription && <p className="mt-1 text-xs leading-snug text-[#6b7280]">{servicePreview(serviceDescription)}</p>}
 
-                  <div className="mt-4 flex flex-1 items-start gap-2 text-xs leading-relaxed text-[#4b5563]">
+                  <div className="mt-2 flex items-start gap-2 text-xs leading-snug text-[#4b5563]">
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
                     <span>{language === 'fil' ? service.scheduleFil : service.schedule}</span>
                   </div>
 
-                  <div className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-[#6b7280]">
+                  <div className="mt-1 flex items-start gap-2 text-xs leading-snug text-[#6b7280]">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
                     <span>{service.location}</span>
                   </div>
@@ -131,7 +130,7 @@ export const ServicesSection: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedServiceId(service.id)}
-                    className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]"
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]"
                   >
                     {language === 'fil' ? 'Tingnan ang detalye' : 'View details'}
                     <ArrowRight className="h-4 w-4" />
