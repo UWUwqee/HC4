@@ -16,7 +16,7 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <section id="overview" className="hero-section-enter bg-[#0f4d3c] text-white">
+    <section id="home" className="hero-section-enter bg-[#0f4d3c] text-white">
       <div className="relative min-h-[250px] sm:min-h-[280px] flex items-center overflow-hidden border-b border-white/10">
         <img src={centerPhoto} alt="Delfin Salonga Health Center exterior" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-[#0f4d3c]/88" />

@@ -47,9 +47,9 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
       )}
 
       <main key={activeSection} className="public-view-enter flex-1">
-        {activeSection === 'clinic-information' ? (
+        {activeSection === 'information' ? (
           <PublicInformation />
-        ) : activeSection === 'appointment-schedule' ? (
+        ) : activeSection === 'schedule' ? (
           <AppointmentSchedule />
         ) : activeSection === 'services' ? (
           <ServicesSection />
