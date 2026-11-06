@@ -20,7 +20,7 @@ type RouteResult = {
   }>;
 };
 
-const destination: L.LatLngTuple = [14.5469469, 121.0715389];
+const destination: L.LatLngTuple = [14.5508576, 121.0704430];
 const routingProfiles: Record<TravelMode, string> = {
   walking: 'routed-foot',
   bicycling: 'routed-bike',
