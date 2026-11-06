@@ -6,7 +6,11 @@ import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
   const isFilipino = language === 'fil';
-  const featuredServices = siteContent.services.slice(0, 5);
+  const featuredServices = [
+    ...siteContent.services.slice(0, 4),
+    { id: 'dental-service', title: 'Dental service', titleFil: 'Serbisyong dental' },
+    { id: 'philhealth-yakap', title: 'PhilHealth YAKAP benefits', titleFil: 'Benepisyo sa PhilHealth YAKAP' },
+  ];
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
@@ -103,11 +107,6 @@ export const PublicInformation: React.FC = () => {
                 {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-xs text-[#6b7280]"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
               </ul>
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
-            <div className="mt-3 space-y-3 border-t border-[#e7eee9] pt-3 text-xs leading-relaxed text-[#4b5563]">
-              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'Duty ng klinika:' : 'Clinic duty:'}</strong> {isFilipino ? 'Lunes-Biyernes, 7:00 AM - 4:00 PM.' : 'Mon-Fri, 7:00 am - 4:00pm'}</p>
-              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'Dental:' : 'Dental:'}</strong> {isFilipino ? 'Huwebes at Biyernes, 7:00 am - 4:00 pm.' : 'Thursday and Friday, 7:00am - 4pm'}</p>
-              <p><strong className="text-[#0f4d3c]">{isFilipino ? 'PhilHealth YAKAP:' : 'PhilHealth YAKAP:'}</strong> {isFilipino ? 'Maaaring makatanggap ang kwalipikadong miyembro ng hanggang PHP 20,000 na benepisyo. Maaaring may libreng gamot kung available sa health center.' : 'Eligible members may receive up to PHP 20,000 in benefits. Free medicines may be available at the health center.'}</p>
-            </div>
           </section>
         </div>
       </div>
