@@ -1,163 +1,214 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowRight, Clock3, MapPin, Syringe, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { ServiceDetail } from '../types';
+import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
 import checkupImage from '../assets/images/CHECK UP.jpg';
 import familyPlanningImage from '../assets/images/FAMILYPLANNING.jpg';
 import maternityImage from '../assets/images/MATERNITY.png';
 import vaccinationImage from '../assets/images/VACCINATION.jpg';
 
-const serviceVisuals = {
-  checkup: { image: checkupImage, imageAlt: 'A health worker speaking with a patient' },
-  family_planning: { image: familyPlanningImage, imageAlt: 'Family standing together' },
-  maternity: { image: maternityImage, imageAlt: 'A pregnant patient receiving care from a health worker' },
-  vaccination: { image: vaccinationImage, imageAlt: 'Vaccination service illustration' },
-  immunization: { image: vaccinationImage, imageAlt: 'Immunization service illustration' },
-  dental: { image: checkupImage, imageAlt: 'Dental service illustration' },
-  tb_dots: { image: checkupImage, imageAlt: 'TB-DOTS service illustration' },
-  pen_meds: { image: checkupImage, imageAlt: 'Medication service illustration' },
-  pap_smear: { image: maternityImage, imageAlt: 'Pap smear service illustration' },
-} as const;
+const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
+  checkup: checkupImage,
+  family_planning: familyPlanningImage,
+  maternity: maternityImage,
+  vaccination: vaccinationImage,
+  immunization: vaccinationImage,
+  dental: checkupImage,
+  pen_meds: checkupImage,
+  tb_dots: checkupImage,
+  pap_smear: maternityImage,
+  nutrition: familyPlanningImage,
+  pharmacy: checkupImage,
+  xray: checkupImage,
+  antigen_testing: vaccinationImage,
+};
+
+const illustrationForService = (category: string) => {
+  switch (category) {
+    case 'maternity':
+      return { Icon: Heart, color: 'bg-rose-50 text-rose-700', accent: 'bg-rose-200/70' };
+    case 'nutrition':
+      return { Icon: Baby, color: 'bg-amber-50 text-amber-700', accent: 'bg-amber-200/70' };
+    case 'dental':
+      return { Icon: Smile, color: 'bg-sky-50 text-sky-700', accent: 'bg-sky-200/70' };
+    case 'animal_bite':
+      return { Icon: ShieldAlert, color: 'bg-orange-50 text-orange-700', accent: 'bg-orange-200/70' };
+    case 'pharmacy':
+      return { Icon: Pill, color: 'bg-violet-50 text-violet-700', accent: 'bg-violet-200/70' };
+    case 'xray':
+      return { Icon: Activity, color: 'bg-cyan-50 text-cyan-800', accent: 'bg-cyan-200/70' };
+    default:
+      return { Icon: Stethoscope, color: 'bg-emerald-50 text-emerald-800', accent: 'bg-emerald-200/70' };
+  }
+};
 
 export const ServicesSection: React.FC = () => {
-  const { language, siteContent } = useHealthCenter();
-  const isFilipino = language === 'fil';
+  const { t, language, openBookingForProgram, clinicOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
+  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const selectedService = siteContent.services.find((service) => service.id === selectedServiceId) ?? null;
 
-  const serviceCards = useMemo(
-    () => siteContent.services.map((service) => ({
-      ...service,
-      image: serviceVisuals[service.category as keyof typeof serviceVisuals]?.image ?? checkupImage,
-      imageAlt: serviceVisuals[service.category as keyof typeof serviceVisuals]?.imageAlt ?? 'Clinic service illustration',
-    })),
-    [siteContent.services],
-  );
-
-  const selectedService = serviceCards.find((service) => service.id === selectedServiceId) ?? null;
+  const servicePreview = (description: string) => {
+    const firstSentence = description.trim().match(/^.*?[.!?](?=\s|$)/)?.[0] ?? description.trim();
+    return firstSentence.length > 150 ? `${firstSentence.slice(0, 147).trimEnd()}...` : firstSentence;
+  };
 
   return (
-    <section id="services" aria-labelledby="services-title" className="site-section-bg section-enter border-b border-[#dce7e1] py-5 sm:py-7">
+    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-8 sm:py-10">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <div className="mb-5 text-[#0f4d3c]">
-          <div className="text-[12px] font-medium text-[#4b5563]">
-            <span className="font-medium">Home</span>
-            <span className="mx-2 text-[#6b7280]">/</span>
-            <span className="font-semibold text-[#0f4d3c]">Services</span>
+        <div className="breadcrumb">
+          Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
+              {language === 'fil' ? 'Mga serbisyong pangkalusugan' : 'Health services'}
+            </div>
+            <p className="mt-2 text-sm text-[#6b7280]">
+              {language === 'fil'
+                ? 'Mga iskedyul, lokasyon, at impormasyon sa pangangalaga.'
+                : 'Schedules, locations, and care information.'}
+            </p>
           </div>
-          <h1 id="services-title" className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#2c7a5f]">
-            {isFilipino ? 'Mga serbisyong pangkalusugan' : 'Health services'}
-          </h1>
-          <p className="mt-1 text-sm text-[#6b7280]">
-            {isFilipino ? 'Mga iskedyul, lokasyon, at impormasyon sa pangangalaga.' : 'Schedules, locations, and care information.'}
-          </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {serviceCards.map((service) => (
-            <article
-              key={service.id}
-              className="overflow-hidden rounded-xl border border-[#dce7e1] bg-white shadow-[0_1px_0_rgba(15,77,60,0.04)] transition-transform duration-200 hover:-translate-y-0.5"
-            >
-              <div className="overflow-hidden">
-                <img
-                  src={service.image}
-                  alt={service.imageAlt}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-[16/10] w-full object-cover"
-                />
-              </div>
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {siteContent.services.map((service) => {
+            const image = serviceImages[service.category as keyof typeof serviceImages];
+            const illustration = illustrationForService(service.category);
+            const IllustrationIcon = illustration.Icon;
 
-              <div className="space-y-3 p-4 sm:p-5">
-                <h2 className="text-[1.05rem] font-bold leading-snug text-[#0f4d3c]">
-                  {isFilipino ? service.titleFil : service.title}
-                </h2>
-
-                <p className="min-h-[46px] text-sm leading-relaxed text-[#4b5563]">
-                  {isFilipino ? service.shortDescFil : service.shortDesc}
-                </p>
-
-                <div className="space-y-2 text-sm text-[#374151]">
-                  {service.schedule && (
-                    <div className="flex items-start gap-2">
-                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
-                      <span>{isFilipino ? service.scheduleFil || service.schedule : service.schedule}</span>
-                    </div>
-                  )}
-                  {service.location && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
-                      <span>{service.location}</span>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedServiceId(service.id)}
-                  className="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#1f5d51] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#184c42]"
-                >
-                  {isFilipino ? 'Tingnan ang detalye' : 'View details'}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {selectedService && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4">
-            <div className="w-full max-w-4xl rounded-xl border border-[#dce7e1] bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-[#e7eee9] p-4">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
-                  {isFilipino ? 'Detalye ng serbisyo' : 'Service details'}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedServiceId(null)}
-                  aria-label="Close service details"
-                  className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[#edf7f3]"
-                >
-                  <X className="h-4 w-4 text-[#0f4d3c]" />
-                </button>
-              </div>
-
-              <div className="grid gap-4 p-4 md:grid-cols-[1.3fr_0.7fr]">
-                <div>
-                  <div className="mb-3 overflow-hidden rounded-lg">
-                    <img src={selectedService.image} alt={selectedService.imageAlt} className="aspect-[16/10] w-full object-cover" />
+            return (
+              <article
+                key={service.id}
+                className="site-card service-row lift-on-hover flex min-w-0 flex-col overflow-hidden transition-colors duration-200 hover:border-[#9bbdad]"
+              >
+                {image ? (
+                  <img
+                    src={image}
+                    alt={language === 'fil' ? service.titleFil : service.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="aspect-[16/9] w-full border-b border-[#dce7e1] object-cover"
+                  />
+                ) : (
+                  <div
+                    role="img"
+                    aria-label={`${language === 'fil' ? service.titleFil : service.title} illustration`}
+                    className={`relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] ${illustration.color}`}
+                  >
+                    <span className={`absolute right-8 top-5 h-14 w-14 rounded-full ${illustration.accent}`} />
+                    <span className={`absolute bottom-4 left-8 h-10 w-10 rounded-full ${illustration.accent}`} />
+                    <IllustrationIcon className="relative h-9 w-9 stroke-[1.6] sm:h-10 sm:w-10" aria-hidden="true" />
                   </div>
-                  <h3 className="text-2xl font-bold text-[#0f4d3c]">
-                    {isFilipino ? selectedService.titleFil : selectedService.title}
+                )}
+
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className="text-base font-bold text-[#0f4d3c]">
+                    {language === 'fil' ? service.titleFil : service.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#374151]">
-                    {isFilipino ? selectedService.fullDescFil : selectedService.fullDesc}
+                  <p className="mt-2 min-h-10 text-sm leading-relaxed text-[#6b7280]">
+                    {servicePreview(language === 'fil' ? service.shortDescFil : service.shortDesc)}
                   </p>
-                </div>
 
-                <div className="space-y-3 text-sm text-[#374151]">
-                  <div className="rounded-lg border border-[#dce7e1] bg-[#f7faf8] p-3">
-                    <div className="mb-1 flex items-center gap-2 font-bold text-[#0f4d3c]">
-                      <Clock3 className="h-4 w-4 text-[#2c7a5f]" />
-                      {isFilipino ? 'Iskedyul' : 'Schedule'}
-                    </div>
-                    <div>{isFilipino ? selectedService.scheduleFil || selectedService.schedule : selectedService.schedule || 'Available by appointment.'}</div>
+                  <div className="mt-4 flex flex-1 items-start gap-2 text-xs leading-relaxed text-[#4b5563]">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
+                    <span>{language === 'fil' ? service.scheduleFil : service.schedule}</span>
                   </div>
-                  <div className="rounded-lg border border-[#dce7e1] bg-[#f7faf8] p-3">
-                    <div className="mb-1 flex items-center gap-2 font-bold text-[#0f4d3c]">
-                      <MapPin className="h-4 w-4 text-[#2c7a5f]" />
-                      {isFilipino ? 'Lokasyon' : 'Location'}
-                    </div>
-                    <div>{selectedService.location || 'Delfin Salonga Health Center'}</div>
+
+                  <div className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-[#6b7280]">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
+                    <span>{service.location}</span>
                   </div>
-                  <div className="rounded-lg border border-[#dce7e1] bg-[#eaf5ef] p-3 font-bold text-[#0f4d3c]">
-                    {selectedService.badge || (isFilipino ? 'Available' : 'Available')}
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedServiceId(service.id)}
+                    className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]"
+                  >
+                    {language === 'fil' ? 'Tingnan ang detalye' : 'View details'}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
+              </article>
+            );
+          })}
+
+          {siteContent.services.length === 0 && (
+            <p className="col-span-full py-8 text-sm text-[#6b7280]">
+              {language === 'fil' ? 'Walang serbisyong nailathala sa ngayon.' : 'No services have been published yet.'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {selectedService && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
+          onClick={() => setSelectedServiceId(null)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="service-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+              <div className="min-w-0">
+                <div className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                  {language === 'fil' ? selectedService.badgeFil : selectedService.badge}
+                </div>
+                <h3 id="service-dialog-title" className="mt-1 break-words text-2xl font-bold tracking-wide text-slate-950 uppercase">
+                  {language === 'fil' ? selectedService.titleFil : selectedService.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedServiceId(null)}
+                aria-label={t.btnCloseArticle}
+                className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-500 hover:text-slate-900"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="py-5 text-sm leading-relaxed text-slate-700">
+              {language === 'fil' ? selectedService.fullDescFil : selectedService.fullDesc}
+            </p>
+
+            <div className="grid gap-4 border-y border-slate-200 py-4 text-sm sm:grid-cols-2">
+              <div>
+                <div className="font-bold text-slate-900">{t.labelSchedule}</div>
+                <p className="mt-1 text-slate-600">
+                  {language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}
+                </p>
+              </div>
+              <div>
+                <div className="font-bold text-slate-900">{t.labelLocation}</div>
+                <p className="mt-1 text-slate-600">{selectedService.location}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="font-bold text-slate-900">{t.labelPersonnel}</div>
+                <p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+
+            {bookingEnabled && (
+              <button
+                type="button"
+                onClick={() => openBookingForProgram(selectedService.id)}
+                className="mt-6 inline-flex min-h-11 items-center justify-center bg-[#17645c] px-4 py-3 text-sm font-bold text-white rounded-sm hover:bg-[#104f49]"
+              >
+                {language === 'fil' ? 'Humiling ng appointment' : 'REQUEST AN APPOINTMENT'}
+              </button>
+            )}
+          </section>
+        </div>,
+        document.body,
+      )}
     </section>
   );
 };
