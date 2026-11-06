@@ -4,8 +4,13 @@ import { useHealthCenter } from '../context/HealthCenterContext';
 import { ServiceDetail } from '../types';
 import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
 import checkupImage from '../assets/images/CHECK UP.jpg';
+import dentalServiceImage from '../assets/images/DENTAL SERVICE.jpg';
 import familyPlanningImage from '../assets/images/FAMILYPLANNING.jpg';
+import immunizationImage from '../assets/images/IMMUNIZATION.png';
 import maternityImage from '../assets/images/MATERNITY.png';
+import papSmearImage from '../assets/images/PAP SMEAR.png';
+import penMedsImage from '../assets/images/PEN MEDS.jpg';
+import tbDotsImage from '../assets/images/TB DOTS.png';
 import vaccinationImage from '../assets/images/VACCINATION.jpg';
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
@@ -13,11 +18,11 @@ const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   family_planning: familyPlanningImage,
   maternity: maternityImage,
   vaccination: vaccinationImage,
-  immunization: vaccinationImage,
-  dental: checkupImage,
-  pen_meds: checkupImage,
-  tb_dots: checkupImage,
-  pap_smear: maternityImage,
+  immunization: immunizationImage,
+  dental: dentalServiceImage,
+  pen_meds: penMedsImage,
+  tb_dots: tbDotsImage,
+  pap_smear: papSmearImage,
   nutrition: familyPlanningImage,
   pharmacy: checkupImage,
   xray: checkupImage,
