@@ -84,15 +84,20 @@ export const PublicInformation: React.FC = () => {
               </ul>
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
             <div className="mt-4 border-t border-[#e7eee9] pt-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2c7a5f]">{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</p>
-              <ul className="mt-2 space-y-2 text-[11px] leading-relaxed text-[#374151]">
-                {CLINIC_SCHEDULE.map((entry) => (
-                  <li key={entry.day}>
-                    <span className="font-bold text-[#0f4d3c]">{entry.day}:</span> {entry.am}
-                    {entry.pm && <span className="block text-[#4b5563]">PM: {entry.pm}</span>}
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-hidden rounded-md border border-[#102f2e] bg-[#0f1f1c] text-white shadow-sm">
+                <div className="border-b border-white/10 bg-[#123b36] px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/90">
+                  {isFilipino ? 'Iskedyul ng serbisyo' : 'SERVICE SCHEDULE'}
+                </div>
+                <div className="space-y-2 px-3 py-3 text-[11px] leading-relaxed text-white/90">
+                  {CLINIC_SCHEDULE.map((entry) => (
+                    <div key={entry.day}>
+                      <div className="font-bold text-[#dff7f0]">{entry.day}:</div>
+                      <div className="pl-1 text-white/85">AM: {entry.am}</div>
+                      {entry.pm && <div className="pl-1 text-white/75">PM: {entry.pm}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
