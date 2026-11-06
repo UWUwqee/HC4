@@ -65,10 +65,10 @@ export const AppointmentSchedule: React.FC = () => {
   const dates = Object.keys(appointmentsByDate).filter((date) => date >= today).sort();
 
   return (
-    <section id="schedule" className="site-section-bg section-enter border-b border-[#dce7e1] py-4 sm:py-6">
+    <section id="schedule" className="site-section-bg section-enter border-b border-[#dce7e1] py-3 sm:py-4">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Schedule</span></div>
-        <div className="mb-4">
+        <div className="mb-3">
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-bold text-[#2c7a5f]">
               <CalendarDays className="h-4 w-4" />
@@ -81,8 +81,8 @@ export const AppointmentSchedule: React.FC = () => {
         </div>
 
         {loading || error || dates.length === 0 ? (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)]">
-            <div className="site-card flex flex-col items-start p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)]">
+            <div className="site-card flex flex-col items-start p-3 sm:p-4">
               <CalendarDays className="h-8 w-8 text-[#2c7a5f]" aria-hidden="true" />
               <h3 className="mt-4 text-xl font-bold text-[#0f4d3c]">{isFilipino ? 'Iskedyul ng appointment' : 'Appointment schedule'}</h3>
               <p role={error ? 'alert' : 'status'} className={`mt-2 max-w-xl text-sm leading-relaxed ${error ? 'text-rose-800' : 'text-[#6b7280]'}`}>
@@ -91,7 +91,7 @@ export const AppointmentSchedule: React.FC = () => {
                   : (isFilipino ? 'Lalabas dito ang mga oras ng appointment kapag naaprubahan na ng clinic staff.' : 'Approved appointment times will appear here after clinic staff accept them.'))}
               </p>
             </div>
-            <aside className="site-card p-4">
+            <aside className="site-card p-3 sm:p-4">
               <h3 className="text-sm font-bold text-[#0f4d3c]">{isFilipino ? 'Mabilisang impormasyon' : 'Quick information'}</h3>
               <dl className="mt-3 space-y-3 text-sm">
                 <div><dt className="flex items-center gap-2 font-semibold text-[#374151]"><Clock3 className="h-4 w-4 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</dt><dd className="mt-1 pl-6 text-[#6b7280]">{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</dd></div>
@@ -101,12 +101,12 @@ export const AppointmentSchedule: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {dates.flatMap((date) => appointmentsByDate[date]
                 .slice()
                 .sort((first, second) => (timeOrder[first.time] ?? 99) - (timeOrder[second.time] ?? 99))
                 .map((slot) => (
-                  <article key={`${date}-${slot.time}`} className="site-card p-4 transition-colors hover:border-[#9bbdad]">
+                  <article key={`${date}-${slot.time}`} className="site-card p-3 transition-colors hover:border-[#9bbdad]">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-[#2c7a5f]">{date}</p>
                     <h3 className="mt-1 text-sm font-bold text-[#0f4d3c]">{dateLabel(date)}</h3>
                     <div className="mt-3 flex items-center gap-2 border-t border-[#e7eee9] pt-3">

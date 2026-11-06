@@ -39,17 +39,17 @@ export const Header: React.FC = () => {
   return (
     <header className="header-enter sticky top-0 z-40 border-b border-[#dce7e1] bg-white/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-[68px] items-center justify-between gap-2 sm:gap-5">
+        <div className="flex h-[60px] items-center justify-between gap-2 sm:gap-5">
           <a
             href="#home"
             onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}
             className="flex min-w-0 shrink items-center gap-2 text-xs font-bold text-[#0f4d3c] transition-colors duration-200 hover:text-[#2c7a5f] sm:gap-3 sm:text-[15px]"
           >
-            <img src={delfinSalongaLogo} alt="" aria-hidden="true" className="h-10 w-10 shrink-0 rounded-full border border-[#dce7e1] object-cover" />
+            <img src={delfinSalongaLogo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 rounded-full border border-[#dce7e1] object-cover" />
             <span title={t.brand} className="min-w-0 truncate sm:overflow-visible sm:whitespace-nowrap">Delfin Salonga <span className="hidden sm:inline">Health Center</span></span>
           </a>
 
-          <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-[#6b7280]">
+          <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-[#6b7280]">
             {navLinks.map((item) => (
               <button
                 key={item.id}

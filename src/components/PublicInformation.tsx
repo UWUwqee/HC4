@@ -31,7 +31,7 @@ export const PublicInformation: React.FC = () => {
   }, [viewingImage]);
 
   return (
-    <section id="information" className="site-section-bg section-enter border-b border-[#dce7e1] py-4 sm:py-6">
+    <section id="information" className="site-section-bg section-enter border-b border-[#dce7e1] py-3 sm:py-4">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         {siteContentError && <p role="status" className="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">{isFilipino ? 'Hindi ma-refresh ang pinakabagong impormasyon ng klinika; ipinapakita ang huling na-save na nilalaman.' : 'Clinic information could not be refreshed; showing the last saved content.'}</p>}
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Information</span></div>
@@ -50,7 +50,7 @@ export const PublicInformation: React.FC = () => {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <section className="site-card p-4">
+          <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
             <div className="space-y-1 text-xs text-[#374151]">
               <p><strong className="text-sm font-bold uppercase text-[#0f4d3c]">{clinicDutyLabel}</strong>{clinicDutySchedule ? `: ${clinicDutySchedule}` : ''}</p>
@@ -58,7 +58,7 @@ export const PublicInformation: React.FC = () => {
             </div>
           </section>
 
-          <section className="site-card p-4">
+          <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</h3>
             <div className="space-y-3 text-xs leading-relaxed text-[#374151]">
               {CLINIC_SCHEDULE.map((entry) => (
@@ -71,7 +71,7 @@ export const PublicInformation: React.FC = () => {
             </div>
           </section>
 
-          <section className="site-card p-4">
+          <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Bell className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
             {updates.length > 0 ? (
               <ul className="space-y-3">
@@ -88,7 +88,7 @@ export const PublicInformation: React.FC = () => {
             ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
           </section>
 
-          <section className="site-card p-4">
+          <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><CalendarDays className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
             {outreach.length > 0 ? (
               <ul className="bullet-list text-sm text-[#374151]">

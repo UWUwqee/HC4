@@ -60,13 +60,13 @@ export const ServicesSection: React.FC = () => {
   };
 
   return (
-    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-8 sm:py-10">
+    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-6 sm:py-8">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="breadcrumb">
           Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span>
         </div>
 
-        <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
               {language === 'fil' ? 'Mga serbisyong pangkalusugan' : 'Health services'}
@@ -79,7 +79,7 @@ export const ServicesSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {siteContent.services.map((service) => {
             const image = serviceImages[service.category as keyof typeof serviceImages];
             const illustration = illustrationForService(service.category);
@@ -110,7 +110,7 @@ export const ServicesSection: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex flex-1 flex-col p-5">
+                <div className="flex flex-1 flex-col p-4">
                   <h3 className="text-base font-bold text-[#0f4d3c]">
                     {language === 'fil' ? service.titleFil : service.title}
                   </h3>
@@ -159,7 +159,7 @@ export const ServicesSection: React.FC = () => {
             aria-modal="true"
             aria-labelledby="service-dialog-title"
             onClick={(event) => event.stopPropagation()}
-            className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-8"
+            className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-6"
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
               <div className="min-w-0">
