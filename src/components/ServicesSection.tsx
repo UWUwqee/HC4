@@ -92,13 +92,6 @@ export const ServicesSection: React.FC = () => {
                 {isFilipino ? selectedService.scheduleFil || selectedService.schedule : selectedService.schedule}
               </p>
             )}
-            {selectedService.requirements.length > 0 && (
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[#374151]">
-                {(isFilipino ? selectedService.requirementsFil : selectedService.requirements).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            )}
           </div>
         )}
       </div>
