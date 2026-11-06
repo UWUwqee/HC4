@@ -103,9 +103,13 @@ export async function readSiteContent(db: ReturnType<typeof createClient>, inclu
     settings: { ...DEFAULT_CLINIC_PUBLIC_SETTINGS },
   };
   for (const row of contentResult.rows) {
-    const value = JSON.parse(String(row.content_json)) as ServiceDetail | NewsUpdate | OutreachProgram;
-    if (row.content_type === 'service') content.services.push(value as ServiceDetail);
-    else if (row.content_type === 'news') content.news.push(value as NewsUpdate);
+    const value = JSON.parse(String(row.content_json)) as unknown;
+    if (row.content_type === 'service') {
+      if (value && typeof value === 'object' && !Array.isArray(value)
+        && String((value as Record<string, unknown>).category).toLowerCase() !== 'vaccination') {
+        content.services.push(value as ServiceDetail);
+      }
+    } else if (row.content_type === 'news') content.news.push(value as NewsUpdate);
     else if (row.content_type === 'outreach') content.outreach.push(value as OutreachProgram);
   }
   for (const row of settingsResult.rows) {
@@ -136,7 +140,7 @@ export function validateSiteContent(
     if (typeof value[field] !== 'string' || value[field].length > 5000) return null;
   }
   if (contentType === 'service') {
-    if (!['maternity', 'checkup', 'family_planning', 'vaccination', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'].includes(String(value.category))) return null;
+    if (!['maternity', 'checkup', 'family_planning', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'].includes(String(value.category))) return null;
     for (const field of ['keyPersonnel', 'requirements', 'requirementsFil']) {
       if (!Array.isArray(value[field]) || value[field].length > 50
         || value[field].some((entry) => typeof entry !== 'string' || entry.length > 300)) return null;

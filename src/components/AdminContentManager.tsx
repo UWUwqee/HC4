@@ -34,7 +34,7 @@ const fieldsByType: Record<ContentType, Field[]> = {
     { key: 'shortDescFil', label: 'Short description (Filipino)', multiline: true },
     { key: 'fullDesc', label: 'Full details (English)', multiline: true },
     { key: 'fullDescFil', label: 'Full details (Filipino)', multiline: true },
-    { key: 'category', label: 'Category', options: ['checkup', 'maternity', 'family_planning', 'vaccination'] },
+    { key: 'category', label: 'Category', options: ['checkup', 'maternity', 'family_planning', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'] },
     { key: 'schedule', label: 'Schedule (English)', multiline: true },
     { key: 'scheduleFil', label: 'Schedule (Filipino)', multiline: true },
     { key: 'location', label: 'Location' },

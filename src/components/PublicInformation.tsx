@@ -50,13 +50,41 @@ export const PublicInformation: React.FC = () => {
         </div>
 
         <div className="grid items-start gap-3 md:grid-cols-2">
-          <section className="site-card p-3 sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
-            <div className="space-y-1 text-xs text-[#374151]">
-              <p><strong className="text-sm font-bold uppercase text-[#0f4d3c]">{clinicDutyLabel}</strong>{clinicDutySchedule ? `: ${clinicDutySchedule}` : ''}</p>
-              {additionalClinicHours.map((hours, index) => <p key={`${index}-${hours}`}>{hours}</p>)}
-            </div>
-          </section>
+          <div className="grid content-start gap-3">
+            <section className="site-card p-3 sm:p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
+              <div className="space-y-1 text-xs text-[#374151]">
+                <p><strong className="text-sm font-bold uppercase text-[#0f4d3c]">{clinicDutyLabel}</strong>{clinicDutySchedule ? `: ${clinicDutySchedule}` : ''}</p>
+                {additionalClinicHours.map((hours, index) => <p key={`${index}-${hours}`}>{hours}</p>)}
+              </div>
+            </section>
+
+            <section className="site-card p-3 sm:p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Bell className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
+              {updates.length > 0 ? (
+                <ul className="space-y-3">
+                  {updates.map((update) => (
+                    <li key={update.id} className="flex items-start gap-3 border-t border-[#e7eee9] pt-3 first:border-0 first:pt-0">
+                      {update.imageUrl && <button type="button" onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })} aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`} className="shrink-0 cursor-zoom-in overflow-hidden rounded-sm bg-[#eaf3ee]"><img src={update.imageUrl} alt="" loading="lazy" decoding="async" className="h-12 w-14 object-cover" /></button>}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#0f4d3c]">{isFilipino ? update.titleFil : update.title}</p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6b7280]">{isFilipino ? update.summaryFil : update.summary}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
+            </section>
+
+            <section className="site-card p-3 sm:p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><CalendarDays className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
+              {outreach.length > 0 ? (
+                <ul className="bullet-list text-sm text-[#374151]">
+                  {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-xs text-[#6b7280]"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
+                </ul>
+              ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
+            </section>
+          </div>
 
           <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</h3>
@@ -69,32 +97,6 @@ export const PublicInformation: React.FC = () => {
                 </div>
               ))}
             </div>
-          </section>
-
-          <section className="site-card p-3 sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Bell className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
-            {updates.length > 0 ? (
-              <ul className="space-y-3">
-                {updates.map((update) => (
-                  <li key={update.id} className="flex items-start gap-3 border-t border-[#e7eee9] pt-3 first:border-0 first:pt-0">
-                    {update.imageUrl && <button type="button" onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })} aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`} className="shrink-0 cursor-zoom-in overflow-hidden rounded-sm bg-[#eaf3ee]"><img src={update.imageUrl} alt="" loading="lazy" decoding="async" className="h-12 w-14 object-cover" /></button>}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#0f4d3c]">{isFilipino ? update.titleFil : update.title}</p>
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6b7280]">{isFilipino ? update.summaryFil : update.summary}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
-          </section>
-
-          <section className="site-card p-3 sm:p-4">
-            <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><CalendarDays className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
-            {outreach.length > 0 ? (
-              <ul className="bullet-list text-sm text-[#374151]">
-                {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-xs text-[#6b7280]"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
-              </ul>
-            ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
           </section>
         </div>
       </div>

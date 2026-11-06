@@ -1,4 +1,4 @@
-export type ServiceCategory = 'checkup' | 'maternity' | 'family_planning' | 'vaccination' | 'immunization' | 'dental' | 'tb_dots' | 'pen_meds' | 'pap_smear';
+export type ServiceCategory = 'checkup' | 'maternity' | 'family_planning' | 'immunization' | 'dental' | 'tb_dots' | 'pen_meds' | 'pap_smear';
 export type ContentType = 'service' | 'news' | 'outreach';
 
 export interface ServiceDetail {

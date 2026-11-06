@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { ServiceDetail } from '../types';
-import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
+import { ArrowRight, Clock, Heart, MapPin, Smile, Stethoscope, X } from 'lucide-react';
 import checkupImage from '../assets/images/CHECK UP.jpg';
 import dentalServiceImage from '../assets/images/DENTAL SERVICE.jpg';
 import familyPlanningImage from '../assets/images/FAMILYPLANNING.jpg';
@@ -11,38 +11,24 @@ import maternityImage from '../assets/images/MATERNITY.png';
 import papSmearImage from '../assets/images/PAP SMEAR.png';
 import penMedsImage from '../assets/images/PEN MEDS.jpg';
 import tbDotsImage from '../assets/images/TB DOTS.png';
-import vaccinationImage from '../assets/images/VACCINATION.jpg';
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   checkup: checkupImage,
   family_planning: familyPlanningImage,
   maternity: maternityImage,
-  vaccination: vaccinationImage,
   immunization: immunizationImage,
   dental: dentalServiceImage,
   pen_meds: penMedsImage,
   tb_dots: tbDotsImage,
   pap_smear: papSmearImage,
-  nutrition: familyPlanningImage,
-  pharmacy: checkupImage,
-  xray: checkupImage,
-  antigen_testing: vaccinationImage,
 };
 
 const illustrationForService = (category: string) => {
   switch (category) {
     case 'maternity':
       return { Icon: Heart, color: 'bg-rose-50 text-rose-700', accent: 'bg-rose-200/70' };
-    case 'nutrition':
-      return { Icon: Baby, color: 'bg-amber-50 text-amber-700', accent: 'bg-amber-200/70' };
     case 'dental':
       return { Icon: Smile, color: 'bg-sky-50 text-sky-700', accent: 'bg-sky-200/70' };
-    case 'animal_bite':
-      return { Icon: ShieldAlert, color: 'bg-orange-50 text-orange-700', accent: 'bg-orange-200/70' };
-    case 'pharmacy':
-      return { Icon: Pill, color: 'bg-violet-50 text-violet-700', accent: 'bg-violet-200/70' };
-    case 'xray':
-      return { Icon: Activity, color: 'bg-cyan-50 text-cyan-800', accent: 'bg-cyan-200/70' };
     default:
       return { Icon: Stethoscope, color: 'bg-emerald-50 text-emerald-800', accent: 'bg-emerald-200/70' };
   }
@@ -60,18 +46,18 @@ export const ServicesSection: React.FC = () => {
   };
 
   return (
-    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-6 sm:py-8">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-4 sm:py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-8 lg:px-12">
         <div className="breadcrumb">
           Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span>
         </div>
 
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
               {language === 'fil' ? 'Mga serbisyong pangkalusugan' : 'Health services'}
             </div>
-            <p className="mt-2 text-sm text-[#6b7280]">
+            <p className="mt-1 text-xs text-[#6b7280] sm:mt-2 sm:text-sm">
               {language === 'fil'
                 ? 'Mga iskedyul, lokasyon, at impormasyon sa pangangalaga.'
                 : 'Schedules, locations, and care information.'}
@@ -79,7 +65,7 @@ export const ServicesSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
           {siteContent.services.map((service) => {
             const image = serviceImages[service.category as keyof typeof serviceImages];
             const illustration = illustrationForService(service.category);
@@ -99,13 +85,13 @@ export const ServicesSection: React.FC = () => {
                     alt={serviceTitle}
                     loading="lazy"
                     decoding="async"
-                    className="aspect-[16/9] w-full border-b border-[#dce7e1] object-cover"
+                    className="aspect-[2/1] w-full border-b border-[#dce7e1] object-cover sm:aspect-[16/9]"
                   />
                 ) : (
                   <div
                     role="img"
                     aria-label={`${language === 'fil' ? service.titleFil : service.title} illustration`}
-                    className={`relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] ${illustration.color}`}
+                    className={`relative flex aspect-[2/1] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] sm:aspect-[16/9] ${illustration.color}`}
                   >
                     <span className={`absolute right-8 top-5 h-14 w-14 rounded-full ${illustration.accent}`} />
                     <span className={`absolute bottom-4 left-8 h-10 w-10 rounded-full ${illustration.accent}`} />
@@ -113,18 +99,18 @@ export const ServicesSection: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="text-base font-bold leading-snug text-[#0f4d3c]">{serviceTitle}</h3>
+                <div className="flex flex-1 flex-col p-3 sm:p-4">
+                  <h3 className="break-words text-base font-bold leading-snug text-[#0f4d3c]">{serviceTitle}</h3>
                   {hasDistinctDescription && <p className="mt-1 text-xs leading-snug text-[#6b7280]">{servicePreview(serviceDescription)}</p>}
 
                   <div className="mt-2 flex items-start gap-2 text-xs leading-snug text-[#4b5563]">
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
-                    <span>{language === 'fil' ? service.scheduleFil : service.schedule}</span>
+                    <span className="min-w-0 break-words">{language === 'fil' ? service.scheduleFil : service.schedule}</span>
                   </div>
 
                   <div className="mt-1 flex items-start gap-2 text-xs leading-snug text-[#6b7280]">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
-                    <span>{service.location}</span>
+                    <span className="min-w-0 break-words">{service.location}</span>
                   </div>
 
                   <button
@@ -165,7 +151,7 @@ export const ServicesSection: React.FC = () => {
                 <div className="text-xs font-bold uppercase tracking-wider text-teal-800">
                   {language === 'fil' ? selectedService.badgeFil : selectedService.badge}
                 </div>
-                <h3 id="service-dialog-title" className="mt-1 break-words text-2xl font-bold tracking-wide text-slate-950 uppercase">
+                <h3 id="service-dialog-title" className="mt-1 break-words text-xl font-bold tracking-wide text-slate-950 uppercase sm:text-2xl">
                   {language === 'fil' ? selectedService.titleFil : selectedService.title}
                 </h3>
               </div>
@@ -179,23 +165,23 @@ export const ServicesSection: React.FC = () => {
               </button>
             </div>
 
-            <p className="py-5 text-sm leading-relaxed text-slate-700">
+            <p className="py-3 text-sm leading-relaxed text-slate-700 sm:py-5">
               {language === 'fil' ? selectedService.fullDescFil : selectedService.fullDesc}
             </p>
 
-            <div className="grid gap-4 border-y border-slate-200 py-4 text-sm sm:grid-cols-2">
+            <div className="grid gap-3 border-y border-slate-200 py-3 text-sm sm:grid-cols-2 sm:gap-4 sm:py-4">
               <div>
-                <div className="font-bold text-slate-900">{t.labelSchedule}</div>
+                <div className="font-bold text-slate-900">{language === 'fil' ? 'Iskedyul' : 'Schedule'}</div>
                 <p className="mt-1 text-slate-600">
                   {language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}
                 </p>
               </div>
               <div>
-                <div className="font-bold text-slate-900">{t.labelLocation}</div>
+                <div className="font-bold text-slate-900">{language === 'fil' ? 'Lokasyon' : 'Location'}</div>
                 <p className="mt-1 text-slate-600">{selectedService.location}</p>
               </div>
               <div className="sm:col-span-2">
-                <div className="font-bold text-slate-900">{t.labelPersonnel}</div>
+                <div className="font-bold text-slate-900">{language === 'fil' ? 'Mga tauhan' : 'Care team'}</div>
                 <p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p>
               </div>
             </div>
@@ -204,7 +190,7 @@ export const ServicesSection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openBookingForProgram(selectedService.id)}
-                className="mt-6 inline-flex min-h-11 items-center justify-center bg-[#17645c] px-4 py-3 text-sm font-bold text-white rounded-sm hover:bg-[#104f49]"
+                className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-[#17645c] px-4 py-3 text-sm font-bold text-white hover:bg-[#104f49] sm:mt-6 sm:w-auto"
               >
                 {language === 'fil' ? 'Humiling ng appointment' : 'REQUEST AN APPOINTMENT'}
               </button>
