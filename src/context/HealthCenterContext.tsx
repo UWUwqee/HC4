@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { auth } from '../firebase';
+import { useAuth } from '@clerk/react';
 import { DEFAULT_CLINIC_PUBLIC_SETTINGS, SERVICES_DATA } from '../data/healthCenterData';
 import type { ClinicPublicSettings, PublicSiteContent } from '../types';
 
@@ -154,6 +154,7 @@ function appointmentFromApi(row: AppointmentApiRow): PatientAppointment {
 }
 
 export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { getToken } = useAuth();
   const [language, setLanguage] = useState<Language>(() => (
     localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
   ));
@@ -189,15 +190,15 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   useEffect(() => {
     let active = true;
-    const user = auth.currentUser;
-    if (!user) {
+    if (!getToken) {
       setAppointmentRequestAvailability('error');
       setClinicStatusError('Sign in to load clinic status.');
       return () => { active = false; };
     }
 
     const requestWithToken = async (path: string) => {
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
       return fetch(path, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
@@ -294,13 +295,13 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
-  }, []);
+  }, [getToken]);
 
   const cancelAppointment = async (id: string) => {
     const appointment = appointments.find((item) => item.id === id);
-    const user = auth.currentUser;
-    if (!appointment || !user) return;
-    const token = await user.getIdToken();
+    if (!appointment) return;
+    const token = await getToken();
+    if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
     const response = await fetch('/api/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

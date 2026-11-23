@@ -2,10 +2,9 @@ import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { COVERAGE_AREAS } from '../src/data/delfinSalongaClinicInfo.ts';
 import { ensureSiteContent, getContentDatabase } from './site-content-store.ts';
+import { verifyClerkToken } from './clerk-auth.ts';
 
 type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
 type ApiResponse = ServerResponse & {
@@ -30,31 +29,14 @@ function text(value: unknown, limit: number) {
   return typeof value === 'string' ? value.trim().slice(0, limit) : '';
 }
 
-function getFirebaseAdmin() {
-  if (getApps().length > 0) return getAuth();
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
-  let credential;
-  if (serviceAccountJson) {
-    try {
-      credential = cert(JSON.parse(serviceAccountJson));
-    } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON or is missing service-account fields.');
-    }
-  } else {
-    credential = applicationDefault();
-  }
-  initializeApp({ credential });
-  return getAuth();
-}
-
 async function authenticate(request: ApiRequest) {
   const authorization = text(request.headers.authorization, 2000);
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
   if (!token) return null;
   try {
-    return await getFirebaseAdmin().verifyIdToken(token);
+    return await verifyClerkToken(token);
   } catch (error) {
-    console.error('Appointment API Firebase ID token verification failed:', error);
+    console.error('Appointment API Clerk ID token verification failed:', error);
     return null;
   }
 }
@@ -173,7 +155,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   }
   const decoded = await authenticate(request);
   if (!decoded) {
-    return response.status(401).json({ error: 'Your sign-in could not be verified for this Firebase project.' });
+    return response.status(401).json({ error: 'Your sign-in could not be verified by Clerk.' });
   }
 
   const body = request.body && typeof request.body === 'object'

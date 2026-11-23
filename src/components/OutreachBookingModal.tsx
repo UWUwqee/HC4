@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
-import type { User } from 'firebase/auth';
 import { COVERAGE_AREAS, DELFIN_SALONGA_SERVICES } from '../data/delfinSalongaClinicInfo';
 
 interface AppointmentReceipt {
@@ -35,7 +35,8 @@ function appointmentServiceLabel(service: { id: string; title: string; titleFil:
   return isFilipino ? service.titleFil : service.title;
 }
 
-export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
+export const OutreachBookingModal: React.FC = () => {
+  const { getToken } = useAuth();
   const {
     t,
     language,
@@ -97,7 +98,8 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
     let active = true;
     const loadAvailability = async () => {
       try {
-        const token = await user.getIdToken();
+        const token = await getToken();
+        if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
         const response = await fetch('/api/appointments', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
@@ -134,7 +136,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [bookingModalOpen, user]);
+  }, [bookingModalOpen, getToken]);
 
   if (!bookingModalOpen) return null;
 
@@ -175,7 +177,8 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
     setSubmitting(true);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getToken();
+      if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -209,7 +212,7 @@ export const OutreachBookingModal: React.FC<{ user: User }> = ({ user }) => {
           markAppointmentRequestPending();
         }
         const message = response.status === 401
-          ? 'Your sign-in could not be verified. Check that the Firebase service account in Vercel belongs to this app’s Firebase project, then redeploy.'
+          ? 'Your sign-in could not be verified by Clerk. Check the Clerk configuration in Vercel, then redeploy.'
           : result.error || 'Could not submit your appointment request.';
         throw new Error(message);
       }

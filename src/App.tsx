@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { useAuth, useUser } from '@clerk/react';
 import { HealthCenterProvider, useHealthCenter } from './context/HealthCenterContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -10,13 +10,12 @@ import { AppointmentSchedule } from './components/AppointmentSchedule';
 import { Footer } from './components/Footer';
 import { OutreachBookingModal } from './components/OutreachBookingModal';
 import { CheckCircle2 } from 'lucide-react';
-import { auth } from './firebase';
 import { AuthScreen } from './components/AuthScreen';
 import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
 import { PatientFlow } from './components/PatientFlow';
 
-const AppContent: React.FC<{ user: User }> = ({ user }) => {
+const AppContent: React.FC = () => {
   const { activeSection, notificationToast, setNotificationToast, appointmentRequestAvailability, language } = useHealthCenter();
 
   useEffect(() => {
@@ -64,8 +63,8 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
 
       <Footer />
 
-      <UserAppointmentChat user={user} />
-      <OutreachBookingModal user={user} />
+      <UserAppointmentChat />
+      <OutreachBookingModal />
 
       {notificationToast && (
         <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 flex max-w-sm items-center gap-2 rounded-md border border-white/10 bg-[#0f4d3c] px-4 py-3 text-sm font-semibold text-white shadow-lg animate-fade-in sm:bottom-5 sm:left-auto sm:right-5">
@@ -78,18 +77,13 @@ const AppContent: React.FC<{ user: User }> = ({ user }) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
+  const { user } = useUser();
   const [accountRole, setAccountRole] = useState<'checking' | 'admin' | 'user' | 'error'>('checking');
   const [roleError, setRoleError] = useState('');
 
-  useEffect(() => onAuthStateChanged(auth, (nextUser) => {
-    setUser(nextUser);
-    setAuthLoading(false);
-  }), []);
-
   useEffect(() => {
-    if (!user) {
+    if (!isSignedIn || !user) {
       setAccountRole('checking');
       setRoleError('');
       return;
@@ -99,7 +93,8 @@ export default function App() {
     setAccountRole('checking');
     void (async () => {
       try {
-        const token = await user.getIdToken();
+        const token = await getToken();
+        if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
         const response = await fetch('/api/admin?mode=role', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
@@ -130,9 +125,9 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [getToken, isSignedIn, user]);
 
-  if (authLoading) {
+  if (!isLoaded) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[#eef2ee] text-sm font-bold text-[#173a37]">
         Loading...
@@ -140,7 +135,7 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthScreen />;
+  if (!isSignedIn) return <AuthScreen />;
 
   if (accountRole === 'checking') {
     return (
@@ -154,7 +149,7 @@ export default function App() {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#eef2ee] px-5 text-center text-[#173a37]">
         <p role="alert" className="max-w-md text-sm">{roleError}</p>
-        <button type="button" onClick={() => void auth.signOut()} className="border border-[#b9c7be] px-4 py-2 text-sm font-bold">Sign out and try again</button>
+        <button type="button" onClick={() => void signOut()} className="border border-[#b9c7be] px-4 py-2 text-sm font-bold">Sign out and try again</button>
       </main>
     );
   }
@@ -163,7 +158,7 @@ export default function App() {
 
   return (
     <HealthCenterProvider>
-      <AppContent user={user} />
+      <AppContent />
     </HealthCenterProvider>
   );
 }

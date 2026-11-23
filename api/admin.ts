@@ -2,9 +2,8 @@ import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { clinicPublicSettingKeys, ensureSiteContent, getContentDatabase, readSiteContent, validateSiteContent } from './site-content-store.ts';
+import { verifyClerkToken, type ClerkIdentity } from './clerk-auth.ts';
 
 type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
 type ApiResponse = ServerResponse & {
@@ -49,29 +48,6 @@ function text(value: unknown, limit: number) {
 function announcementImageId(value: unknown) {
   if (typeof value !== 'string') return null;
   return /^\/api\/content-image\?id=([0-9a-f-]{36})$/i.exec(value)?.[1] ?? null;
-}
-
-function getFirebaseAdmin() {
-  if (getApps().length > 0) return getAuth();
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
-  let credential;
-
-  if (serviceAccountJson) {
-    try {
-      credential = cert(JSON.parse(serviceAccountJson));
-    } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON or is missing service-account fields.');
-    }
-  } else {
-    try {
-      credential = applicationDefault();
-    } catch {
-      throw new Error('Missing Firebase Admin credentials: add FIREBASE_SERVICE_ACCOUNT_JSON to your Vercel environment variables.');
-    }
-  }
-
-  initializeApp({ credential });
-  return getAuth();
 }
 
 async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
@@ -143,16 +119,20 @@ async function authenticate(request: ApiRequest) {
   if (!token) return null;
 
   try {
-    return await getFirebaseAdmin().verifyIdToken(token);
+    return await verifyClerkToken(token);
   } catch (error) {
-    console.error('Firebase token verification failed:', error);
-    throw new Error(error instanceof Error ? error.message : 'Firebase token verification failed.');
+    console.error('Clerk token verification failed:', error);
+    throw new Error(error instanceof Error ? error.message : 'Clerk token verification failed.');
   }
 }
 
-function isAdmin(decoded: Awaited<ReturnType<ReturnType<typeof getFirebaseAdmin>['verifyIdToken']>>) {
+function isAdmin(decoded: ClerkIdentity | null) {
+  if (!decoded) return false;
   if (decoded.admin === true) return true;
-  const allowedUid = process.env.ADMIN_UIDS?.split(',').map((uid) => uid.trim()).filter(Boolean) ?? [];
+  const allowedUid = [
+    ...(process.env.ADMIN_UIDS?.split(',') ?? []),
+    ...(process.env.ADMIN_USER_IDS?.split(',') ?? []),
+  ].map((uid) => uid.trim()).filter(Boolean);
   if (allowedUid.includes(decoded.uid)) return true;
   const allowedEmails = process.env.ADMIN_EMAILS?.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean) ?? [];
   return typeof decoded.email === 'string'

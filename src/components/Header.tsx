@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
+import { useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { Menu, X, Globe, CalendarDays, LogOut, Mail } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
 import delfinSalongaLogo from '../assets/images/DELFIN.png';
 
 export const Header: React.FC = () => {
+  const { signOut } = useAuth();
   const {
     t,
     language,
@@ -82,7 +82,7 @@ export const Header: React.FC = () => {
               <Mail className="h-5 w-5" />
               {unreadAdminMessageCount > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadAdminMessageCount > 99 ? '99+' : unreadAdminMessageCount}</span>}
             </button>
-            <button type="button" onClick={() => void signOut(auth)} className="p-2 text-[#4b5563] hover:text-[#0f4d3c]" aria-label="Sign out" title="Sign out">
+            <button type="button" onClick={() => void signOut()} className="p-2 text-[#4b5563] hover:text-[#0f4d3c]" aria-label="Sign out" title="Sign out">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -136,7 +136,7 @@ export const Header: React.FC = () => {
               <CalendarDays className="w-4 h-4" />
               <span>REQUEST AN APPOINTMENT</span>
             </button>}
-            <button type="button" onClick={() => void signOut(auth)} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-[#dce7e1] px-4 text-sm font-semibold text-[#4b5563] hover:bg-[#f2f7f4]">
+            <button type="button" onClick={() => void signOut()} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-[#dce7e1] px-4 text-sm font-semibold text-[#4b5563] hover:bg-[#f2f7f4]">
               <LogOut className="h-4 w-4" />
               Sign out
             </button>

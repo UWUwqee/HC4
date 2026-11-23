@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useState } from 'react';
-import type { User } from 'firebase/auth';
+import { useAuth, useUser } from '@clerk/react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 
@@ -27,8 +27,9 @@ interface ChatResponse {
   messages: ChatMessage[];
 }
 
-async function chatRequest(user: User, body?: Record<string, unknown>) {
-  const token = await user.getIdToken();
+async function chatRequest(getToken: () => Promise<string | null>, body?: Record<string, unknown>) {
+  const token = await getToken();
+  if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
   return fetch('/api/admin', {
     method: body ? 'POST' : 'GET',
     headers: {
@@ -40,7 +41,9 @@ async function chatRequest(user: User, body?: Record<string, unknown>) {
   });
 }
 
-export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
+export const UserAppointmentChat: React.FC = () => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
   const { language, messagesOpen, setMessagesOpen } = useHealthCenter();
   const isFilipino = language === 'fil';
   const [appointments, setAppointments] = useState<ChatAppointment[]>([]);
@@ -58,7 +61,7 @@ export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
 
     const loadMessages = async () => {
       try {
-        const response = await chatRequest(user);
+        const response = await chatRequest(getToken);
         if (!response.ok) throw new Error('Messages could not be loaded.');
         const data = await response.json() as ChatResponse;
         if (!active) return;
@@ -83,7 +86,7 @@ export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [messagesOpen, user]);
+  }, [messagesOpen, getToken]);
 
   const selectedAppointment = appointments.find((appointment) => appointment.id === selectedAppointmentId);
   const selectedMessages = messages.filter((message) => message.appointment_id === selectedAppointmentId);
@@ -91,8 +94,8 @@ export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
 
   useEffect(() => {
     if (!messagesOpen || !selectedAppointmentId || !latestAdminMessage) return;
-    void chatRequest(user, { action: 'mark_chat_read', appointmentId: selectedAppointmentId });
-  }, [messagesOpen, selectedAppointmentId, latestAdminMessage?.created_at, user]);
+    void chatRequest(getToken, { action: 'mark_chat_read', appointmentId: selectedAppointmentId });
+  }, [messagesOpen, selectedAppointmentId, latestAdminMessage?.created_at, getToken]);
 
   const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,10 +105,10 @@ export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
     setSending(true);
     setError('');
     try {
-      const response = await chatRequest(user, {
+      const response = await chatRequest(getToken, {
         action: 'message',
         appointmentId: selectedAppointment.id,
-        senderName: user.displayName || 'Patient',
+        senderName: user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Patient',
         message,
       });
       if (!response.ok) {
@@ -113,7 +116,7 @@ export const UserAppointmentChat: React.FC<{ user: User }> = ({ user }) => {
         throw new Error(data.error || 'Message could not be sent.');
       }
       setMessageDraft('');
-      const refresh = await chatRequest(user);
+      const refresh = await chatRequest(getToken);
       if (!refresh.ok) throw new Error('Message sent, but the conversation could not be refreshed.');
       const data = await refresh.json() as ChatResponse;
       setAppointments(data.appointments);
