@@ -162,7 +162,7 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [language, setLanguageState] = useState<Language>(() => (
     localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
   ));
-  const [activeSection, setActiveSectionState] = useState('home');
+  const [activeSection, setActiveSectionState] = useState('overview');
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT);
   const [siteContentError, setSiteContentError] = useState('');
   const [clinicOpen, setClinicOpen] = useState<boolean | null>(null);

@@ -46,14 +46,14 @@ export const ServicesSection: React.FC = () => {
   };
 
   return (
-    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-4 sm:py-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-8 lg:px-12">
+    <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-8 sm:py-10">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <BackToHomeButton />
         <div className="breadcrumb">
           Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span>
         </div>
 
-        <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
               {language === 'fil' ? 'Mga serbisyong pangkalusugan' : 'Health services'}
@@ -66,14 +66,13 @@ export const ServicesSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {siteContent.services.map((service) => {
             const image = serviceImages[service.category as keyof typeof serviceImages];
             const illustration = illustrationForService(service.category);
             const IllustrationIcon = illustration.Icon;
             const serviceTitle = language === 'fil' ? service.titleFil : service.title;
             const serviceDescription = language === 'fil' ? service.shortDescFil : service.shortDesc;
-            const hasDistinctDescription = serviceDescription.trim().toLowerCase() !== serviceTitle.trim().toLowerCase();
 
             return (
               <article
@@ -86,13 +85,13 @@ export const ServicesSection: React.FC = () => {
                     alt={serviceTitle}
                     loading="lazy"
                     decoding="async"
-                    className="aspect-[2/1] w-full border-b border-[#dce7e1] object-cover sm:aspect-[16/9]"
+                    className="aspect-[16/9] w-full border-b border-[#dce7e1] object-cover"
                   />
                 ) : (
                   <div
                     role="img"
                     aria-label={`${language === 'fil' ? service.titleFil : service.title} illustration`}
-                    className={`relative flex aspect-[2/1] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] sm:aspect-[16/9] ${illustration.color}`}
+                    className={`relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden border-b border-[#dce7e1] ${illustration.color}`}
                   >
                     <span className={`absolute right-8 top-5 h-14 w-14 rounded-full ${illustration.accent}`} />
                     <span className={`absolute bottom-4 left-8 h-10 w-10 rounded-full ${illustration.accent}`} />
@@ -100,16 +99,16 @@ export const ServicesSection: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex flex-1 flex-col p-3 sm:p-4">
+                <div className="flex flex-1 flex-col p-5">
                   <h3 className="break-words text-base font-bold leading-snug text-[#0f4d3c]">{serviceTitle}</h3>
-                  {hasDistinctDescription && <p className="mt-1 text-xs leading-snug text-[#6b7280]">{servicePreview(serviceDescription)}</p>}
+                  <p className="mt-2 min-h-10 text-sm leading-relaxed text-[#6b7280]">{servicePreview(serviceDescription)}</p>
 
-                  <div className="mt-2 flex items-start gap-2 text-xs leading-snug text-[#4b5563]">
+                  <div className="mt-4 flex flex-1 items-start gap-2 text-xs leading-relaxed text-[#4b5563]">
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
                     <span className="min-w-0 break-words">{language === 'fil' ? service.scheduleFil : service.schedule}</span>
                   </div>
 
-                  <div className="mt-1 flex items-start gap-2 text-xs leading-snug text-[#6b7280]">
+                  <div className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-[#6b7280]">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#2c7a5f]" />
                     <span className="min-w-0 break-words">{service.location}</span>
                   </div>
@@ -117,7 +116,7 @@ export const ServicesSection: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedServiceId(service.id)}
-                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]"
+                    className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c7a5f]"
                   >
                     {language === 'fil' ? 'Tingnan ang detalye' : 'View details'}
                     <ArrowRight className="h-4 w-4" />
@@ -137,7 +136,7 @@ export const ServicesSection: React.FC = () => {
 
       {selectedService && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-4"
           onClick={() => setSelectedServiceId(null)}
         >
           <section
@@ -145,14 +144,14 @@ export const ServicesSection: React.FC = () => {
             aria-modal="true"
             aria-labelledby="service-dialog-title"
             onClick={(event) => event.stopPropagation()}
-            className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto border border-[#dfe6e1] bg-[#fcfdfb] p-4 shadow-[0_18px_50px_rgba(23,58,55,0.28)] sm:max-h-[90vh] sm:p-6"
+            className="max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-xl overflow-y-auto rounded-md border border-[#dce7e1] bg-white p-4 shadow-[0_18px_50px_rgba(15,77,60,0.18)] sm:max-h-[90vh] sm:p-8"
           >
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
               <div className="min-w-0">
-                <div className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                <div className="text-xs font-bold uppercase tracking-wider text-[#2c7a5f]">
                   {language === 'fil' ? selectedService.badgeFil : selectedService.badge}
                 </div>
-                <h3 id="service-dialog-title" className="mt-1 break-words text-xl font-bold tracking-wide text-slate-950 uppercase sm:text-2xl">
+                <h3 id="service-dialog-title" className="mt-1 break-words text-2xl font-bold text-[#0f4d3c]">
                   {language === 'fil' ? selectedService.titleFil : selectedService.title}
                 </h3>
               </div>
@@ -166,24 +165,24 @@ export const ServicesSection: React.FC = () => {
               </button>
             </div>
 
-            <p className="py-3 text-sm leading-relaxed text-slate-700 sm:py-5">
+            <p className="py-5 text-sm leading-relaxed text-[#374151]">
               {language === 'fil' ? selectedService.fullDescFil : selectedService.fullDesc}
             </p>
 
-            <div className="grid gap-3 border-y border-slate-200 py-3 text-sm sm:grid-cols-2 sm:gap-4 sm:py-4">
+            <div className="grid gap-4 border-y border-[#dce7e1] py-4 text-sm sm:grid-cols-2">
               <div>
-                <div className="font-bold text-slate-900">{language === 'fil' ? 'Iskedyul' : 'Schedule'}</div>
-                <p className="mt-1 text-slate-600">
+                <div className="font-bold text-[#0f4d3c]">{language === 'fil' ? 'Iskedyul' : 'Schedule'}</div>
+                <p className="mt-1 text-[#6b7280]">
                   {language === 'fil' ? selectedService.scheduleFil : selectedService.schedule}
                 </p>
               </div>
               <div>
-                <div className="font-bold text-slate-900">{language === 'fil' ? 'Lokasyon' : 'Location'}</div>
-                <p className="mt-1 text-slate-600">{selectedService.location}</p>
+                <div className="font-bold text-[#0f4d3c]">{language === 'fil' ? 'Lokasyon' : 'Location'}</div>
+                <p className="mt-1 text-[#6b7280]">{selectedService.location}</p>
               </div>
               <div className="sm:col-span-2">
-                <div className="font-bold text-slate-900">{language === 'fil' ? 'Mga tauhan' : 'Care team'}</div>
-                <p className="mt-1 text-slate-600">{selectedService.keyPersonnel.join(', ')}</p>
+                <div className="font-bold text-[#0f4d3c]">{language === 'fil' ? 'Mga tauhan' : 'Care team'}</div>
+                <p className="mt-1 text-[#6b7280]">{selectedService.keyPersonnel.join(', ')}</p>
               </div>
             </div>
 

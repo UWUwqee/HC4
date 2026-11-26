@@ -42,7 +42,7 @@ export const AdminPanel: React.FC = () => {
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [slotSettings, setSlotSettings] = useState<SlotSetting[]>([]);
-  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'content' | 'completed'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'priority' | 'calendar' | 'content' | 'completed'>('requests');
   const [selectedId, setSelectedId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
@@ -106,11 +106,19 @@ export const AdminPanel: React.FC = () => {
   const filteredAppointments = useMemo(() => {
     const query = search.trim().toLowerCase();
     return appointments.filter((appointment) => {
-      const matchesStatus = appointment.status !== 'completed'
-        && (statusFilter === 'all'
-          || (statusFilter === 'rejected' ? ['rejected', 'cancelled'].includes(appointment.status) : appointment.status === statusFilter));
+      const inSelectedSection = activeTab === 'completed'
+        ? appointment.status === 'completed'
+        : appointment.status !== 'completed'
+          && (activeTab !== 'priority' || appointment.priority_type === 'priority');
+      const matchesStatus = activeTab === 'completed' || activeTab === 'priority' || (
+        appointment.status !== 'completed'
+        && (
+          statusFilter === 'all'
+          || (statusFilter === 'rejected' ? ['rejected', 'cancelled'].includes(appointment.status) : appointment.status === statusFilter)
+        )
+      );
       const matchesService = serviceFilter === 'all' || appointment.service_name === serviceFilter;
-      const matchesRequestType = requestTypeFilter === 'all' || appointment.priority_type === requestTypeFilter;
+      const matchesRequestType = activeTab === 'priority' || requestTypeFilter === 'all' || appointment.priority_type === requestTypeFilter;
       const matchesDate = (!fromDate || appointment.preferred_date >= fromDate)
         && (!toDate || appointment.preferred_date <= toDate);
       const matchesSearch = !query || [
@@ -119,12 +127,12 @@ export const AdminPanel: React.FC = () => {
         appointment.service_name,
         appointment.phone,
       ].some((value) => value.toLowerCase().includes(query));
-      return matchesStatus && matchesService && matchesRequestType && matchesDate && matchesSearch;
+      return inSelectedSection && matchesStatus && matchesService && matchesRequestType && matchesDate && matchesSearch;
     }).sort((first, second) =>
       first.preferred_date.localeCompare(second.preferred_date)
       || (getAppointmentTimeMinutes(first.preferred_time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.preferred_time) ?? 24 * 60)
       || first.created_at.localeCompare(second.created_at));
-  }, [appointments, fromDate, search, serviceFilter, statusFilter, requestTypeFilter, toDate]);
+  }, [activeTab, appointments, fromDate, search, serviceFilter, statusFilter, requestTypeFilter, toDate]);
 
   useEffect(() => {
     if (selectedId && !filteredAppointments.some((appointment) => appointment.id === selectedId)) {
@@ -181,6 +189,7 @@ export const AdminPanel: React.FC = () => {
         setSelectedId('');
         setChatInput('');
       }
+      if (action === 'complete') setActiveTab('completed');
       await loadWorkspace();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'The action could not be completed.');
@@ -288,11 +297,12 @@ export const AdminPanel: React.FC = () => {
         <nav aria-label="Admin sections" className="mb-5 flex gap-2 overflow-x-auto rounded-md border border-[#dce7e1] bg-white p-2 shadow-sm">
           {[
             { id: 'requests', label: 'Appointment requests' },
+            { id: 'priority', label: `Priority appointments (${appointments.filter((appointment) => appointment.status !== 'completed' && appointment.priority_type === 'priority').length})` },
             { id: 'calendar', label: 'Calendar & availability' },
             { id: 'content', label: 'Website content' },
             { id: 'completed', label: 'Completed records' },
           ].map(({ id, label }) => (
-            <button key={id} type="button" onClick={() => setActiveTab(id as 'requests' | 'calendar' | 'content' | 'completed')} className={`min-h-11 shrink-0 rounded-sm px-3 py-2.5 text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
+            <button key={id} type="button" onClick={() => setActiveTab(id as 'requests' | 'priority' | 'calendar' | 'content' | 'completed')} className={`min-h-11 shrink-0 rounded-sm px-3 py-2.5 text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
           ))}
         </nav>
 
@@ -312,7 +322,7 @@ export const AdminPanel: React.FC = () => {
         <section className="grid min-w-0 overflow-hidden rounded-md border border-[#dce7e1] bg-white shadow-sm lg:min-h-[640px] lg:grid-cols-[350px_minmax(0,1fr)]">
           <aside className={`${selected ? 'hidden lg:block' : ''} min-w-0 border-b border-[#dce7e1] lg:border-b-0 lg:border-r`}>
             <div className="border-b border-[#edf1ee] p-4">
-              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">Appointment requests</h2><span className="text-xs text-[#66736f]">{filteredAppointments.length} shown</span></div>
+              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">{activeTab === 'priority' ? 'Priority appointments' : 'Appointment requests'}</h2><span className="text-xs text-[#66736f]">{filteredAppointments.length} shown</span></div>
               <label className="flex h-10 items-center gap-2 border border-[#d9e1dc] px-3 text-[#66736f] focus-within:border-[#17645c]">
                 <Search className="h-4 w-4 shrink-0" />
                 <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patient or reference" className="min-w-0 flex-1 text-xs text-[#17312e] outline-none" />

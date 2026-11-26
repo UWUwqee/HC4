@@ -37,7 +37,7 @@ export const PublicInformation: React.FC = () => {
   }, [viewingImage]);
 
   return (
-    <section id="information" className="site-section-bg section-enter border-b border-[#dce7e1] py-8 sm:py-10">
+    <section id="clinic-information" className="site-section-bg section-enter border-b border-[#dce7e1] py-8 sm:py-10">
       <div className="w-full px-5 sm:px-8 lg:px-12">
         {siteContentError && <p role="status" className="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">{isFilipino ? 'Hindi ma-refresh ang pinakabagong impormasyon ng klinika; ipinapakita ang huling na-save na nilalaman.' : 'Clinic information could not be refreshed; showing the last saved content.'}</p>}
         <BackToHomeButton />
@@ -117,7 +117,7 @@ export const PublicInformation: React.FC = () => {
             )}
           </section>
 
-          <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             <section className="min-w-0">
               <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg">
                 <Clock3 className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}
@@ -149,32 +149,35 @@ export const PublicInformation: React.FC = () => {
               ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
             </section>
 
-            <section className="min-w-0">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg">
+          </div>
+
+          <section className="grid gap-8 border-t border-white/20 pt-6 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
                 <Users className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Mga kawani ng klinika' : 'Clinic staff'}
               </h3>
-              <ul className="space-y-2 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+              <ul className="grid gap-3 text-sm leading-6 text-emerald-50 sm:grid-cols-2">
                 {STAFF_ROSTER.map((person) => (
                   <li key={`${person.name}-${person.role}`}>
-                    <strong>{person.name}</strong><span className="block text-sm text-emerald-100 lg:text-xs">{person.role}</span>
+                    <strong>{person.name}</strong><span className="block text-xs text-emerald-100">{person.role}</span>
                   </li>
                 ))}
               </ul>
-            </section>
-          </div>
+            </div>
 
-          <section className="border-t border-white/20 pt-6">
-            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
-              <CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}
-            </h3>
-            <div className="grid gap-4 text-sm text-emerald-50 sm:grid-cols-2 lg:grid-cols-3">
-              {CLINIC_SCHEDULE.map((entry) => (
-                <div key={entry.day} className="border-t border-white/20 pt-3">
-                  <p className="font-bold text-white">{entry.day}</p>
-                  <p><strong>AM (7 AM - 11 AM):</strong> {entry.am}</p>
-                  <p><strong>PM (12 PM - 4 PM):</strong> {entry.pm}</p>
-                </div>
-              ))}
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+                <CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}
+              </h3>
+              <div className="grid gap-3 text-sm text-emerald-50 sm:grid-cols-2">
+                {CLINIC_SCHEDULE.map((entry) => (
+                  <div key={entry.day} className="border-t border-white/20 pt-3">
+                    <p className="font-bold text-white">{entry.day}</p>
+                    <p><strong>AM (7 AM - 11 AM):</strong> {entry.am}</p>
+                    <p><strong>PM (12 PM - 4 PM):</strong> {entry.pm}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>

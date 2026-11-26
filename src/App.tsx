@@ -10,7 +10,7 @@ import { PublicInformation } from './components/PublicInformation';
 import { AppointmentSchedule } from './components/AppointmentSchedule';
 import { Footer } from './components/Footer';
 import { OutreachBookingModal } from './components/OutreachBookingModal';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Clock3 } from 'lucide-react';
 import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
 import { PatientFlow } from './components/PatientFlow';
@@ -47,26 +47,35 @@ const AppContent: React.FC = () => {
   return (
     <div className="public-page-shell min-h-screen flex flex-col text-[#374151] antialiased selection:bg-[#eaf3ee] selection:text-[#0f4d3c]">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-white focus:px-4 focus:py-3 focus:font-semibold focus:text-[#0f4d3c]">
-        Skip to content
+        Skip to main content
       </a>
       <Header />
 
       {isSignedIn && ['pending', 'confirmed'].includes(appointmentRequestAvailability) && (
-        <div role="status" aria-live="polite" className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-950">
-          {appointmentRequestAvailability === 'confirmed'
-            ? (language === 'fil'
-              ? 'May aktibo ka pang kumpirmadong appointment. Kumpletuhin o kanselahin muna ito bago mag-request muli.'
-              : 'You have an active confirmed appointment. Complete or cancel it before submitting another request.')
-            : (language === 'fil'
-              ? 'May appointment request ka pang naghihintay ng pagsusuri ng kawani.'
-              : 'You have an appointment request waiting for clinic staff to review.')}
+        <div role="status" aria-live="polite" className={`hidden border-b px-4 py-3 sm:block ${
+          appointmentRequestAvailability === 'pending'
+            ? 'border-amber-200 bg-amber-50 text-amber-950'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-950'
+        }`}>
+          <div className="mx-auto flex max-w-7xl items-start gap-2.5 text-sm">
+            {appointmentRequestAvailability === 'pending'
+              ? <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+              : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />}
+            <p>{appointmentRequestAvailability === 'pending'
+              ? (language === 'fil'
+                ? 'Sinusuri pa ng kawani ang iyong appointment request. Mag-a-update ang abisong ito kapag may aksyon na.'
+                : 'Your appointment request is under review. This notice will update when clinic staff respond.')
+              : (language === 'fil'
+                ? 'May kumpirmado kang appointment. Kumpletuhin o kanselahin muna ito bago humiling muli.'
+                : 'You have an accepted appointment. Complete or cancel it before requesting another.')}</p>
+          </div>
         </div>
       )}
 
-      <main id="main-content" key={activeSection} className="public-view-enter flex-1">
-        {activeSection === 'information' ? (
+      <main id="main-content" key={activeSection} tabIndex={-1} className="public-view-enter flex-1">
+        {activeSection === 'clinic-information' ? (
           <PublicInformation />
-        ) : activeSection === 'schedule' ? (
+        ) : activeSection === 'appointment-schedule' ? (
           <AppointmentSchedule />
         ) : activeSection === 'services' ? (
           <ServicesSection />
