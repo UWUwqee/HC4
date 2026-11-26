@@ -25,6 +25,7 @@ interface AppointmentRow {
   status: string;
   chat_status: string;
   created_at: string;
+  completed_at: string | null;
 }
 
 interface ChatMessage {

@@ -73,6 +73,7 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
       privacy_consent INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
+      completed_at TEXT,
       created_at TEXT NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS appointment_messages (
@@ -123,6 +124,7 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
     ['patient_age', 'INTEGER NOT NULL DEFAULT 0'],
     ['priority_type', "TEXT NOT NULL DEFAULT 'regular'"],
     ['priority_reason', "TEXT NOT NULL DEFAULT ''"],
+    ['completed_at', 'TEXT'],
   ]) {
     if (!columnNames.has(column)) {
       await db.execute(`ALTER TABLE appointment_requests ADD COLUMN ${column} ${definition}`);
@@ -632,8 +634,8 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         })
         : action === 'complete'
           ? appointmentId
-            ? await db.execute({ sql: "UPDATE appointment_requests SET status = 'completed' WHERE id = ? AND status = 'confirmed'", args: [appointmentId] })
-            : await db.execute({ sql: "UPDATE appointment_requests SET status = 'completed' WHERE reference_code = ? AND status = 'confirmed'", args: [referenceCode] })
+            ? await db.execute({ sql: "UPDATE appointment_requests SET status = 'completed', completed_at = ?, chat_status = CASE WHEN chat_status = 'deleted' THEN 'deleted' ELSE 'closed' END WHERE id = ? AND status = 'confirmed'", args: [new Date().toISOString(), appointmentId] })
+            : await db.execute({ sql: "UPDATE appointment_requests SET status = 'completed', completed_at = ?, chat_status = CASE WHEN chat_status = 'deleted' THEN 'deleted' ELSE 'closed' END WHERE reference_code = ? AND status = 'confirmed'", args: [new Date().toISOString(), referenceCode] })
         : appointmentId
           ? await db.execute({ sql: 'UPDATE appointment_requests SET status = ? WHERE id = ?', args: [status, appointmentId] })
           : await db.execute({ sql: 'UPDATE appointment_requests SET status = ? WHERE reference_code = ?', args: [status, referenceCode] });

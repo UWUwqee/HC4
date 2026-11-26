@@ -73,6 +73,7 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
       privacy_consent INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
+      completed_at TEXT,
       created_at TEXT NOT NULL
     )
   `);
@@ -92,6 +93,7 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
     ['attendance_consent', 'INTEGER NOT NULL DEFAULT 0'],
     ['priority_type', "TEXT NOT NULL DEFAULT 'regular'"],
     ['priority_reason', "TEXT NOT NULL DEFAULT ''"],
+    ['completed_at', 'TEXT'],
   ]) {
     if (!columnNames.has(column)) {
       await db.execute(`ALTER TABLE appointment_requests ADD COLUMN ${column} ${definition}`);

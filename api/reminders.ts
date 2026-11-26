@@ -72,7 +72,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       if (claim.rowsAffected === 0) continue;
 
       const appointmentTime = formatAppointmentTime(String(appointment.preferred_time));
-      const message = `This is an automated reminder.\n\nYour appointment for ${String(appointment.service_name)} is scheduled for ${String(appointment.preferred_date)} at ${appointmentTime}. Please arrive on time.\n\nFilipino:\nAwtomatikong paalala ito. Nakatakda ang iyong appointment para sa ${String(appointment.service_name)} sa ${String(appointment.preferred_date)}, ganap na ${appointmentTime}. Mangyaring dumating sa oras.`;
+      const message = `This is an automated reminder.\n\nYour appointment for ${String(appointment.service_name)} is scheduled for ${String(appointment.preferred_date)} at ${appointmentTime}. Please arrive on time. If you need to cancel, open Messages and choose Cancel appointment. To request a schedule change, reply here so clinic staff can assist you.\n\nFilipino:\nAwtomatikong paalala ito. Nakatakda ang iyong appointment para sa ${String(appointment.service_name)} sa ${String(appointment.preferred_date)}, ganap na ${appointmentTime}. Mangyaring dumating sa oras. Maaari kang magkansela sa Messages o mag-reply rito upang humiling ng pagbabago sa iskedyul.`;
       await db.execute({
         sql: `INSERT INTO appointment_messages
               (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)

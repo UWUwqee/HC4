@@ -257,7 +257,8 @@
 }
 
 .route-start-pin-mode,
-.route-start-pin-mode .leaflet-interactive {
+.route-start-pin-mode .leaflet-interactive,
+.route-start-pin-mode canvas {
   cursor: crosshair !important;
 }
 

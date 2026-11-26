@@ -7,11 +7,17 @@ interface ReportAppointment {
   phone: string;
   email: string;
   zone: string;
+  address: string;
+  health_concern: string;
+  patient_age: number;
   service_name: string;
   preferred_date: string;
   preferred_time: string;
+  priority_type: string;
+  priority_reason: string;
   status: string;
   created_at: string;
+  completed_at: string | null;
 }
 
 function csvCell(value: string) {
@@ -36,8 +42,9 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
 
   const exportCsv = () => {
     const columns: Array<keyof ReportAppointment> = [
-      'reference_code', 'patient_name', 'phone', 'email', 'zone',
-      'service_name', 'preferred_date', 'preferred_time', 'status', 'created_at',
+      'reference_code', 'patient_name', 'phone', 'email', 'address', 'health_concern',
+      'patient_age', 'zone', 'service_name', 'preferred_date', 'preferred_time',
+      'priority_type', 'priority_reason', 'status', 'created_at', 'completed_at',
     ];
     const rows = [
       columns.map((column) => csvCell(column.replaceAll('_', ' '))).join(','),
@@ -47,7 +54,7 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `health-center-appointments-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `completed-appointment-records-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -76,11 +83,11 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
       </div>
 
       <div className="overflow-x-auto rounded-md border border-[#dce7e1] bg-white shadow-sm">
-        <table className="w-full min-w-[720px] border-collapse text-left text-xs">
-          <thead className="bg-[#f2f6f2] text-[10px] uppercase tracking-wide text-[#66736f]"><tr>{['Appointment date', 'Patient', 'Service', 'Status', 'Reference'].map((heading) => <th key={heading} className="px-3 py-3 font-bold">{heading}</th>)}</tr></thead>
+        <table className="w-full min-w-[860px] border-collapse text-left text-xs">
+          <thead className="bg-[#f2f6f2] text-[10px] uppercase tracking-wide text-[#66736f]"><tr>{['Appointment date', 'Patient', 'Service', 'Status', 'Reference', 'Completed'].map((heading) => <th key={heading} className="px-3 py-3 font-bold">{heading}</th>)}</tr></thead>
           <tbody className="divide-y divide-[#edf1ee]">
-            {filtered.map((item) => <tr key={item.reference_code}><td className="px-3 py-3">{item.preferred_date} · {formatAppointmentTime(item.preferred_time)}</td><td className="px-3 py-3 font-semibold">{item.patient_name}</td><td className="px-3 py-3">{item.service_name}</td><td className="px-3 py-3 capitalize">{item.status}</td><td className="px-3 py-3 font-mono">{item.reference_code}</td></tr>)}
-            {filtered.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-[#87938c]">No appointment records match these filters.</td></tr>}
+            {filtered.map((item) => <tr key={item.reference_code}><td className="px-3 py-3">{item.preferred_date} · {formatAppointmentTime(item.preferred_time)}</td><td className="px-3 py-3 font-semibold">{item.patient_name}</td><td className="px-3 py-3">{item.service_name}</td><td className="px-3 py-3 capitalize">{item.status}</td><td className="px-3 py-3 font-mono">{item.reference_code}</td><td className="px-3 py-3">{item.completed_at ? new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.completed_at)) : '—'}</td></tr>)}
+            {filtered.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-[#87938c]">No appointment records match these filters.</td></tr>}
           </tbody>
         </table>
       </div>

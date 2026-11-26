@@ -1,6 +1,7 @@
 import React from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { Calendar, Clock, MapPin, Users, CheckCircle, Ticket, XCircle } from 'lucide-react';
+import { formatAppointmentTime } from '../appointmentSchedule';
 
 export const OutreachSection: React.FC = () => {
   const {
@@ -167,7 +168,7 @@ export const OutreachSection: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <span>{apt.appointmentDate}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{apt.timeSlot}</span>
+                      <span>{formatAppointmentTime(apt.timeSlot)}</span>
                     </div>
 
                     {apt.status === 'Confirmed' && (
