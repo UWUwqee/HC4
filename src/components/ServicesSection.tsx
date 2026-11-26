@@ -72,7 +72,12 @@ export const ServicesSection: React.FC = () => {
             const illustration = illustrationForService(service.category);
             const IllustrationIcon = illustration.Icon;
             const serviceTitle = language === 'fil' ? service.titleFil : service.title;
-            const serviceDescription = language === 'fil' ? service.shortDescFil : service.shortDesc;
+            const shortDescription = (language === 'fil' ? service.shortDescFil : service.shortDesc).trim();
+            const fullDescription = (language === 'fil' ? service.fullDescFil : service.fullDesc).trim();
+            const serviceDescription = shortDescription
+              && shortDescription.toLocaleLowerCase() !== serviceTitle.trim().toLocaleLowerCase()
+              ? shortDescription
+              : fullDescription;
 
             return (
               <article
