@@ -3,8 +3,8 @@ import { useAuth } from '@clerk/react';
 import { CalendarDays, Check, CheckCircle2, ChevronLeft, Clock3, LockKeyhole, MessageCircle, Search, Send, Trash2, X } from 'lucide-react';
 import { AdminCalendar, SlotSetting, SlotSettingsForm } from './AdminCalendar';
 import { AdminContentManager } from './AdminContentManager';
-import { AdminReports } from './AdminReports';
-import { getAppointmentTimeMinutes, getAppointmentTimePeriod } from '../appointmentSchedule';
+import { getAppointmentTimeMinutes, getAppointmentTimePeriod, formatAppointmentTime } from '../appointmentSchedule';
+import clinicLogo from '../assets/images/DELFIN.png';
 
 interface AppointmentRow {
   id: string;
@@ -38,6 +38,29 @@ interface ChatMessage {
   created_at: string;
 }
 
+function exportCompletedAppointments(appointments: AppointmentRow[]) {
+  const columns: Array<keyof AppointmentRow> = [
+    'reference_code', 'patient_name', 'phone', 'email', 'address', 'health_concern',
+    'patient_age', 'priority_type', 'priority_reason', 'zone', 'service_name',
+    'preferred_date', 'preferred_time', 'status', 'created_at', 'completed_at',
+  ];
+  const csvCell = (value: string) => {
+    const safeValue = /^[\s]*[=+\-@]/.test(value) ? `'${value}` : value;
+    return `"${safeValue.replaceAll('"', '""')}"`;
+  };
+  const rows = [
+    columns.map((column) => csvCell(column.replaceAll('_', ' '))).join(','),
+    ...appointments.map((appointment) => columns.map((column) => csvCell(String(appointment[column] ?? ''))).join(',')),
+  ];
+  const blob = new Blob([`\uFEFF${rows.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `completed-appointment-records-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export const AdminPanel: React.FC = () => {
   const { getToken, signOut } = useAuth();
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
@@ -46,10 +69,7 @@ export const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'requests' | 'priority' | 'calendar' | 'content' | 'completed'>('requests');
   const [selectedId, setSelectedId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [requestTypeFilter, setRequestTypeFilter] = useState('all');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [appointmentDateFilter, setAppointmentDateFilter] = useState('');
   const [search, setSearch] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -94,16 +114,13 @@ export const AdminPanel: React.FC = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const services = useMemo(() => [...new Set(appointments.map((appointment) => appointment.service_name).filter(Boolean))].sort(), [appointments]);
   const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
   const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
   const counts = useMemo(() => ({
     pending: appointments.filter((appointment) => appointment.status === 'pending').length,
     confirmed: appointments.filter((appointment) => appointment.status === 'confirmed').length,
-    rejected: appointments.filter((appointment) => appointment.status === 'rejected' || appointment.status === 'cancelled').length,
-    upcoming: appointments.filter((appointment) => appointment.status === 'confirmed' && appointment.preferred_date >= today).length,
-  }), [appointments, today]);
+    completed: appointments.filter((appointment) => appointment.status === 'completed').length,
+  }), [appointments]);
   const filteredAppointments = useMemo(() => {
     const query = search.trim().toLowerCase();
     return appointments.filter((appointment) => {
@@ -111,29 +128,31 @@ export const AdminPanel: React.FC = () => {
         ? appointment.status === 'completed'
         : appointment.status !== 'completed'
           && (activeTab !== 'priority' || appointment.priority_type === 'priority');
-      const matchesStatus = activeTab === 'completed' || activeTab === 'priority' || (
-        appointment.status !== 'completed'
-        && (
-          statusFilter === 'all'
-          || (statusFilter === 'rejected' ? ['rejected', 'cancelled'].includes(appointment.status) : appointment.status === statusFilter)
-        )
-      );
-      const matchesService = serviceFilter === 'all' || appointment.service_name === serviceFilter;
-      const matchesRequestType = activeTab === 'priority' || requestTypeFilter === 'all' || appointment.priority_type === requestTypeFilter;
-      const matchesDate = (!fromDate || appointment.preferred_date >= fromDate)
-        && (!toDate || appointment.preferred_date <= toDate);
+      const matchesStatus = activeTab === 'completed'
+        || statusFilter === 'all'
+        || (statusFilter === 'history'
+          ? ['cancelled', 'rejected'].includes(appointment.status)
+          : appointment.status === statusFilter);
+      const matchesDate = !appointmentDateFilter || appointment.preferred_date === appointmentDateFilter;
       const matchesSearch = !query || [
         appointment.patient_name,
         appointment.reference_code,
         appointment.service_name,
         appointment.phone,
+        appointment.address ?? '',
+        appointment.health_concern ?? '',
+        String(appointment.patient_age ?? ''),
+        appointment.priority_reason ?? '',
       ].some((value) => value.toLowerCase().includes(query));
-      return inSelectedSection && matchesStatus && matchesService && matchesRequestType && matchesDate && matchesSearch;
+      return inSelectedSection && matchesStatus && matchesDate && matchesSearch;
     }).sort((first, second) =>
       first.preferred_date.localeCompare(second.preferred_date)
       || (getAppointmentTimeMinutes(first.preferred_time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.preferred_time) ?? 24 * 60)
       || first.created_at.localeCompare(second.created_at));
-  }, [activeTab, appointments, fromDate, search, serviceFilter, statusFilter, requestTypeFilter, toDate]);
+  }, [activeTab, appointmentDateFilter, appointments, search, statusFilter]);
+  const displayedAppointments = useMemo(() => activeTab === 'priority'
+    ? filteredAppointments.filter((appointment) => appointment.priority_type === 'priority')
+    : filteredAppointments, [activeTab, filteredAppointments]);
 
   useEffect(() => {
     if (selectedId && !filteredAppointments.some((appointment) => appointment.id === selectedId)) {
@@ -263,6 +282,7 @@ export const AdminPanel: React.FC = () => {
       <header className="border-b border-[#0b3f32] bg-[#0f4d3c] px-4 py-4 text-white sm:px-8 sm:py-5">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-2 sm:gap-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <img src={clinicLogo} alt="" className="h-10 w-10 shrink-0 rounded-full border border-white/25 bg-white object-cover sm:h-12 sm:w-12" />
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/70 sm:text-[11px] sm:tracking-[0.16em]">Health center staff</span><span className="border border-white/30 bg-white/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-white sm:px-2 sm:text-[10px]">ADMIN</span></div><h1 className="mt-0.5 truncate text-sm font-bold text-white sm:text-lg">Appointment management</h1></div>
           </div>
           <button type="button" onClick={() => void signOut()} className="min-h-11 shrink-0 border border-white/30 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 sm:px-4 sm:text-sm">Sign out</button>
@@ -271,22 +291,24 @@ export const AdminPanel: React.FC = () => {
 
       <div className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-8 sm:py-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div><p className="text-sm font-medium text-[#52635b]">Review appointment requests, contact patients, and manage confirmations.</p><p className="mt-1 text-xs text-[#7b8982]">Changes sync with the public website automatically.</p></div>
-          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-md border border-[#dce7e1] bg-white px-4 py-3 shadow-sm sm:gap-4">
-            <span className={`h-3 w-3 shrink-0 rounded-full ring-4 ${clinicOpen === null ? 'bg-slate-400 ring-slate-100' : clinicOpen ? 'bg-emerald-600 ring-emerald-100' : 'bg-rose-600 ring-rose-100'}`} />
-            <div className="mr-auto min-w-0 sm:mr-2"><div className="text-xs font-bold tracking-wide">{clinicOpen === null ? 'LOADING STATUS' : clinicOpen ? 'OPEN NOW' : 'CLOSED NOW'}</div><div className="text-[10px] text-[#7b8982]">Live public website status</div></div>
-            <button type="button" disabled={clinicStatusSaving || clinicOpen === null} onClick={() => void updateClinicStatus(!clinicOpen)} className={`min-h-11 shrink-0 rounded-sm px-4 text-xs font-bold text-white disabled:opacity-60 ${clinicOpen ? 'bg-rose-700 hover:bg-rose-800' : 'bg-[#0f4d3c] hover:bg-[#2c7a5f]'}`}>
-              {clinicStatusSaving ? 'Saving...' : clinicOpen === null ? 'Loading...' : clinicOpen ? 'CLOSE NOW' : 'OPEN NOW'}
+          <div>
+            <p className="text-sm font-medium text-[#52635b]">Manage appointment requests and patient follow-up.</p>
+            <p className="mt-1 text-xs text-[#7b8982]">Review requests, update availability, and keep clinic information current.</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 text-[11px] text-[#66736f]">
+            <span className={`h-2 w-2 rounded-full ${clinicOpen === null ? 'bg-slate-400' : clinicOpen ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+            <span>{clinicOpen === null ? 'Checking clinic status' : clinicOpen ? 'Clinic is open' : 'Clinic is closed'}</span>
+            <button type="button" disabled={clinicStatusSaving || clinicOpen === null} onClick={() => void updateClinicStatus(!clinicOpen)} className="min-h-9 border border-[#d9e1dc] bg-white px-3 text-[10px] font-bold text-[#17645c] hover:bg-[#f2f7f4] disabled:opacity-60">
+              {clinicStatusSaving ? 'Saving...' : clinicOpen ? 'Close clinic' : 'Open clinic'}
             </button>
           </div>
         </div>
 
-        <section aria-label="Appointment summary" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <section aria-label="Appointment summary" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { label: 'Upcoming appointments', value: counts.upcoming, icon: CalendarDays, color: 'text-sky-800', bg: 'bg-sky-50', border: 'border-l-sky-400' },
             { label: 'Awaiting review', value: counts.pending, icon: Clock3, color: 'text-amber-800', bg: 'bg-amber-50', border: 'border-l-amber-400' },
             { label: 'Accepted', value: counts.confirmed, icon: Check, color: 'text-emerald-800', bg: 'bg-emerald-50', border: 'border-l-emerald-500' },
-            { label: 'Rejected or cancelled', value: counts.rejected, icon: X, color: 'text-rose-800', bg: 'bg-rose-50', border: 'border-l-rose-500' },
+            { label: 'Completed', value: counts.completed, icon: CheckCircle2, color: 'text-sky-800', bg: 'bg-sky-50', border: 'border-l-sky-500' },
           ].map(({ label, value, icon: Icon, color, bg, border }) => (
             <div key={label} className={`flex min-w-0 items-center gap-2 border border-[#dce7e1] border-l-4 bg-white p-3 shadow-sm sm:gap-4 sm:p-4 ${border}`}>
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center ${bg} ${color} sm:h-10 sm:w-10`}><Icon className="h-5 w-5" /></div>
@@ -295,15 +317,15 @@ export const AdminPanel: React.FC = () => {
           ))}
         </section>
 
-        <nav aria-label="Admin sections" className="mb-5 flex gap-2 overflow-x-auto rounded-md border border-[#dce7e1] bg-white p-2 shadow-sm">
+        <nav aria-label="Admin sections" className="mb-5 flex gap-1 overflow-x-auto rounded-md border border-[#dce7e1] bg-white p-1 shadow-sm">
           {[
-            { id: 'requests', label: 'Appointment requests' },
+            { id: 'requests', label: 'Requests' },
             { id: 'priority', label: `Priority appointments (${appointments.filter((appointment) => appointment.status !== 'completed' && appointment.priority_type === 'priority').length})` },
+            { id: 'completed', label: `Completed appointments (${counts.completed})` },
             { id: 'calendar', label: 'Calendar & availability' },
             { id: 'content', label: 'Website content' },
-            { id: 'completed', label: 'Completed records' },
           ].map(({ id, label }) => (
-            <button key={id} type="button" onClick={() => setActiveTab(id as 'requests' | 'priority' | 'calendar' | 'content' | 'completed')} className={`min-h-11 shrink-0 rounded-sm px-3 py-2.5 text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
+            <button key={id} type="button" onClick={() => { setActiveTab(id as 'requests' | 'priority' | 'completed' | 'calendar' | 'content'); setSelectedId(''); }} className={`min-h-11 min-w-max flex-1 rounded-sm px-3 py-2.5 text-center text-xs font-bold sm:min-w-0 sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
           ))}
         </nav>
 
@@ -317,51 +339,48 @@ export const AdminPanel: React.FC = () => {
           />
         ) : activeTab === 'content' ? (
           <AdminContentManager />
-        ) : activeTab === 'completed' ? (
-          <AdminReports appointments={appointments.filter((appointment) => appointment.status === 'completed')} />
         ) : (
         <section className="grid min-w-0 overflow-hidden rounded-md border border-[#dce7e1] bg-white shadow-sm lg:min-h-[640px] lg:grid-cols-[350px_minmax(0,1fr)]">
           <aside className={`${selected ? 'hidden lg:block' : ''} min-w-0 border-b border-[#dce7e1] lg:border-b-0 lg:border-r`}>
             <div className="border-b border-[#edf1ee] p-4">
-              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">{activeTab === 'priority' ? 'Priority appointments' : 'Appointment requests'}</h2><span className="text-xs text-[#66736f]">{filteredAppointments.length} shown</span></div>
+              <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold">{activeTab === 'priority' ? 'Priority appointments' : activeTab === 'completed' ? 'Completed appointment requests' : 'Appointment requests'}</h2><span className="text-xs text-[#66736f]">{displayedAppointments.length} shown</span></div>
+              {activeTab === 'priority' && <p className="mb-3 text-xs leading-relaxed text-[#66736f]">Requests marked PWD, senior citizen, or pregnant/lactating are listed here for staff attention.</p>}
+              {activeTab === 'completed' && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs leading-relaxed text-[#66736f]">Completed requests are archived here and removed from the appointment request and priority lists.</p>
+                  <button type="button" onClick={() => exportCompletedAppointments(displayedAppointments)} disabled={displayedAppointments.length === 0} className="min-h-11 rounded-sm bg-[#0f4d3c] px-4 text-xs font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-50">Export completed records ({displayedAppointments.length})</button>
+                </div>
+              )}
               <label className="flex h-10 items-center gap-2 border border-[#d9e1dc] px-3 text-[#66736f] focus-within:border-[#17645c]">
                 <Search className="h-4 w-4 shrink-0" />
                 <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patient or reference" className="min-w-0 flex-1 text-xs text-[#17312e] outline-none" />
               </label>
-              <div className="mt-3 flex gap-1 overflow-x-auto pb-1">
-                {[
-                  ['all', 'All'],
-                  ['pending', 'Pending'],
-                  ['confirmed', 'Accepted'],
-                  ['rejected', 'Rejected'],
-                ].map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setStatusFilter(value)} className={`min-h-11 shrink-0 whitespace-nowrap px-3 text-xs font-bold ${statusFilter === value ? 'bg-[#173a37] text-white' : 'bg-[#f1f4f1] text-[#66736f] hover:bg-[#e7ede8]'}`}>{label}</button>
-                ))}
-              </div>
-              <label className="mt-2 block text-[11px] font-semibold text-[#66736f]">Service
-                <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] bg-white px-3 text-xs text-[#17312e]">
-                  <option value="all">All services</option>
-                  {services.map((service) => <option key={service} value={service}>{service}</option>)}
-                </select>
+              <label className="mt-3 block text-xs font-semibold text-[#66736f]">
+                Filter by appointment date
+                <input type="date" value={appointmentDateFilter} onChange={(event) => setAppointmentDateFilter(event.target.value)} className="mt-1 block min-h-11 w-full border border-[#d9e1dc] bg-white px-3 text-sm text-[#17312e]" />
               </label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <label className="text-[11px] font-semibold text-[#66736f]">From date<input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => setFromDate(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] px-2 text-xs text-[#17312e]" /></label>
-                <label className="text-[11px] font-semibold text-[#66736f]">To date<input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] px-2 text-xs text-[#17312e]" /></label>
-              </div>
-              <label className="mt-2 block text-[11px] font-semibold text-[#66736f]">Request type
-                <select value={requestTypeFilter} onChange={(event) => setRequestTypeFilter(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] bg-white px-3 text-xs text-[#17312e]">
-                  <option value="all">All requests</option><option value="regular">Regular</option><option value="priority">Priority</option>
-                </select>
-              </label>
+              {appointmentDateFilter && <button type="button" onClick={() => setAppointmentDateFilter('')} className="mt-2 min-h-11 px-3 text-xs font-semibold text-[#17645c] hover:bg-[#eaf3ee]">Show all dates</button>}
+              {activeTab !== 'completed' && (
+                <div className="mt-3 flex gap-1 overflow-x-auto pb-1">
+                  {[
+                    ['all', 'All'],
+                    ['confirmed', 'Accepted'],
+                    ['history', 'Cancelled / rejected'],
+                  ].map(([value, label]) => (
+                    <button key={value} type="button" onClick={() => setStatusFilter(value)} className={`min-h-11 shrink-0 whitespace-nowrap px-3 text-xs font-bold ${statusFilter === value ? 'bg-[#173a37] text-white' : 'bg-[#f1f4f1] text-[#66736f] hover:bg-[#e7ede8]'}`}>{label}</button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="max-h-[420px] overflow-y-auto lg:max-h-[calc(100vh-360px)]">
-              {loading ? <p className="p-5 text-sm text-[#66736f]">Loading requests...</p> : filteredAppointments.map((appointment) => (
+              {loading ? <p className="p-5 text-sm text-[#66736f]">Loading requests...</p> : displayedAppointments.map((appointment) => (
                 <button key={appointment.id} type="button" onClick={() => setSelectedId(appointment.id)} className={`w-full border-b border-[#edf1ee] border-l-2 px-4 py-4 text-left transition-colors hover:bg-[#f5f8f5] ${selectedId === appointment.id ? 'border-l-[#17645c] bg-[#f0f5f1]' : 'border-l-transparent'}`}>
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-bold">{appointment.patient_name}</div><div className="mt-1 truncate text-xs text-[#66736f]">{appointment.service_name}</div></div><div className="flex shrink-0 flex-wrap justify-end gap-1"><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.priority_type === 'priority' ? 'bg-violet-100 text-violet-800' : 'bg-slate-100 text-slate-600'}`}>{appointment.priority_type === 'priority' ? 'Priority' : 'Regular'}</span><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div></div>
-                  <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-[#66736f]"><span>{appointment.preferred_date} · {appointment.preferred_time}</span><span className="break-all font-mono">{appointment.reference_code}</span></div>
+                  <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-[#66736f]"><span>{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</span><span className="break-all font-mono">{appointment.reference_code}</span></div>
+                  {appointment.priority_reason && <div className="mt-2 text-[10px] font-semibold text-[#17645c]">{appointment.priority_reason}</div>}
                 </button>
               ))}
-              {!loading && filteredAppointments.length === 0 && <p className="p-5 text-sm text-[#66736f]">{appointments.length ? 'No requests match these filters.' : 'No appointment requests yet.'}</p>}
+              {!loading && displayedAppointments.length === 0 && <p className="p-5 text-sm text-[#66736f]">{activeTab === 'priority' ? 'No priority appointments match these filters.' : activeTab === 'completed' ? 'No completed appointment requests yet.' : appointments.length ? 'No requests match these filters.' : 'No appointment requests yet.'}</p>}
             </div>
           </aside>
 
@@ -380,7 +399,8 @@ export const AdminPanel: React.FC = () => {
                   <h2 className="mt-5 break-words text-xl font-bold">{selected.patient_name}</h2>
                   <p className="mt-1 break-words text-sm text-[#66736f]">{selected.service_name}</p>
                   <dl className="mt-6 space-y-4 border-y border-[#edf1ee] py-5 text-sm">
-                    <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Preferred appointment</dt><dd className="mt-1 font-medium">{selected.preferred_date} · {selected.preferred_time}</dd></div>
+                    <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Preferred appointment</dt><dd className="mt-1 font-medium">{selected.preferred_date} · {formatAppointmentTime(selected.preferred_time)}</dd></div>
+                    {selected.status === 'completed' && selected.completed_at && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Completed on</dt><dd className="mt-1 font-medium">{new Date(selected.completed_at).toLocaleString()}</dd></div>}
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Barangay</dt><dd className="mt-1 font-medium">{selected.zone}</dd></div>
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Street address</dt><dd className="mt-1 break-words font-medium">{selected.address || 'Not provided'}</dd></div>
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Reason for visit</dt><dd className="mt-1 break-words font-medium">{selected.health_concern || 'Not provided'}</dd></div>
