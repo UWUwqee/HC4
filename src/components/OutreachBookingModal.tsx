@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
-import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, X } from 'lucide-react';
 import { COVERAGE_AREAS, DELFIN_SALONGA_SERVICES } from '../data/delfinSalongaClinicInfo';
 import {
   APPOINTMENT_TIME_SLOTS,
@@ -313,19 +313,14 @@ export const OutreachBookingModal: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (formStep === 1) {
-      if (!formRef.current?.reportValidity()) return;
-      if (!selectedService) {
-        setError(isFilipino ? 'Walang available na serbisyo para sa appointment request.' : 'No services are currently available for appointment requests.');
-        return;
-      }
-      setError('');
-      setFormStep(2);
+  const handleContinueToSchedule = () => {
+    if (!formRef.current?.reportValidity()) return;
+    if (!selectedService) {
+      setError(isFilipino ? 'Walang available na serbisyo para sa appointment request.' : 'No services are currently available for appointment requests.');
       return;
     }
-    void handleSubmit(event);
+    setError('');
+    setFormStep(2);
   };
 
   return (
@@ -387,13 +382,24 @@ export const OutreachBookingModal: React.FC = () => {
               : 'Checking for pending appointment requests...')}
           </p>
         ) : (
-          <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-5 px-4 py-5 sm:px-7 sm:py-6">
+          <form
+            ref={formRef}
+            onSubmit={(event) => {
+              if (formStep === 1) {
+                event.preventDefault();
+                handleContinueToSchedule();
+              } else {
+                void handleSubmit(event);
+              }
+            }}
+            className="space-y-5 px-4 py-5 sm:px-7 sm:py-6"
+          >
             <div aria-label={isFilipino ? 'Hakbang sa appointment' : 'Appointment request steps'} className="space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600">
                 <span>{isFilipino ? `Hakbang ${formStep} ng 2` : `Step ${formStep} of 2`}</span>
                 <span>{formStep === 1
-                  ? (isFilipino ? 'Impormasyon ng pasyente' : 'Patient details')
-                  : (isFilipino ? 'Iskedyul at pahintulot' : 'Schedule and consent')}</span>
+                  ? (isFilipino ? 'Iyong detalye' : 'Your details')
+                  : 'Schedule'}</span>
               </div>
               <div role="progressbar" aria-valuemin={1} aria-valuemax={2} aria-valuenow={formStep} aria-label={isFilipino ? 'Pag-usad ng form' : 'Form progress'} className="h-1.5 overflow-hidden bg-slate-100">
                 <div className={`h-full bg-teal-800 transition-all ${formStep === 1 ? 'w-1/2' : 'w-full'}`} />
@@ -404,9 +410,10 @@ export const OutreachBookingModal: React.FC = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-service" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Serbisyo' : 'Service'}</label>
-                <select id="appointment-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700">
+                <select id="appointment-service" required value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="w-full px-3.5 py-3 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700">
                   {services.map((service) => <option key={service.id} value={service.id}>{appointmentServiceLabel(service, isFilipino)}</option>)}
                 </select>
+                {services.length === 0 && <p role="status" className="mt-2 text-xs text-amber-800">{isFilipino ? 'Walang kasalukuyang nailathalang serbisyo para sa appointment request.' : 'There are no published services available for appointment requests.'}</p>}
               </div>
               <div>
                 <label htmlFor="appointment-name" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formFullName} *</label>
@@ -421,26 +428,21 @@ export const OutreachBookingModal: React.FC = () => {
                 <input id="appointment-email" type="email" autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
               <div>
+                <label htmlFor="appointment-address" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Tirahan' : 'Street address'} *</label>
+                <input id="appointment-address" required minLength={5} maxLength={250} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+              </div>
+              <div>
                 <label htmlFor="appointment-zone" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formZone} *</label>
                 <select id="appointment-zone" required value={zone} onChange={(event) => setZone(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
                   {COVERAGE_AREAS.map((area) => <option key={area} value={area}>{area}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="appointment-address" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Tirahan' : 'Street address'} *</label>
-                <input id="appointment-address" required minLength={5} maxLength={300} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="appointment-concern" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Pangunahing dahilan ng pagbisita' : 'Main reason for visit'} *</label>
-                <textarea id="appointment-concern" required minLength={2} maxLength={2000} rows={3} value={healthConcern} onChange={(event) => setHealthConcern(event.target.value)} className="w-full resize-y border border-slate-300 px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
-                <p className="mt-1 text-xs text-slate-500">{isFilipino ? 'Huwag ilagay dito ang impormasyong hindi kailangan para sa pag-iskedyul.' : 'Share only information needed to arrange your visit.'}</p>
-              </div>
               <div>
                 <label htmlFor="appointment-age" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Edad' : 'Age'} *</label>
                 <input id="appointment-age" required type="number" min={0} max={120} step={1} inputMode="numeric" value={patientAge} onChange={(event) => setPatientAge(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
-              <fieldset className="sm:col-span-2">
-                <legend className="mb-2 text-sm font-semibold text-slate-800">{isFilipino ? 'Mga kategorya para sa priority' : 'Priority categories'}</legend>
+              <fieldset className="sm:col-span-2 rounded-md border border-slate-300 p-3">
+                <legend className="px-1 text-sm font-semibold text-slate-800">{isFilipino ? 'Priority category (opsyonal; piliin lahat ng naaangkop)' : 'Priority category (optional; select all that apply)'}</legend>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {priorityOptions.map((option) => {
                     const automatic = (option.value === 'senior_citizen' && Number(patientAge) >= 60)
@@ -462,6 +464,11 @@ export const OutreachBookingModal: React.FC = () => {
                   })}
                 </div>
               </fieldset>
+              <div className="sm:col-span-2">
+                <label htmlFor="appointment-concern" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Pangunahing reklamo o dahilan ng pagbisita' : 'Health Concern:'} *</label>
+                <textarea id="appointment-concern" required minLength={2} maxLength={2000} rows={4} value={healthConcern} onChange={(event) => setHealthConcern(event.target.value)} className="w-full resize-y border border-slate-300 px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <p className="mt-1 text-xs text-slate-500">{isFilipino ? 'Ibahagi lamang ang impormasyong kailangan upang maihanda ang iyong pagbisita.' : 'Share only information needed to arrange your visit.'}</p>
+              </div>
               {priorityReason && (
                 <p className="sm:col-span-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                   {isFilipino
@@ -473,6 +480,11 @@ export const OutreachBookingModal: React.FC = () => {
                 <input type="checkbox" required checked={attendanceConsent} onChange={(event) => setAttendanceConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
                 <span><strong className="font-bold">{isFilipino ? 'Mahalagang paalala: ' : 'Important reminder: '}</strong>{isFilipino ? 'Nauunawaan kong makakansela ang appointment ko kapag hindi ako dumating sa takdang oras, at kailangan kong magsumite muli ng request.' : 'I understand that missing my appointment will cancel it, and I’ll need to submit a new request.'}</span>
               </label>
+              <div className="sm:col-span-2">
+                <button type="button" onClick={handleContinueToSchedule} disabled={!attendanceConsent || !selectedService} className="mt-1 min-h-12 w-full rounded-sm bg-[#0f4d3c] px-4 py-3 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60">
+                  {isFilipino ? 'Magpatuloy sa schedule' : 'Continue to schedule'}
+                </button>
+              </div>
             </div>
             ) : (
             <>
@@ -507,28 +519,23 @@ export const OutreachBookingModal: React.FC = () => {
             {availabilityError && <p role="status" className="text-xs text-amber-800">{isFilipino ? 'Hindi ma-check ang availability. Susuriin muli ang napiling schedule kapag ipinadala.' : 'Availability could not be checked. The server will verify your selected schedule when you submit.'}</p>}
 
             <label className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm text-slate-600">
-              <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-800" />
-              <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang impormasyong inilagay ko upang kumpirmahin at pamahalaan ang appointment na ito.' : 'I agree that health center staff may use the information I provided to confirm and manage this appointment.'}</span>
+              <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
+              <span>{isFilipino ? 'Pumapayag akong gamitin ng kawani ng health center ang aking personal at pangkalusugang impormasyon, kabilang ang detalye ng appointment at pangunahing dahilan ng pagbisita, upang suriin at tugunan ang request na ito.' : 'I agree that health center staff may use my personal and health information, including appointment details and health concern, to review and respond to this request.'}</span>
             </label>
             </>
             )}
 
             {error && <p role="alert" className="flex items-start gap-2 text-sm text-rose-800"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}</p>}
 
-            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-200 pt-4">
-              {formStep === 2 ? (
-                <p className="flex items-center gap-2 text-xs text-slate-500"><Clock className="w-4 h-4" />{isFilipino ? 'Awtomatikong makukumpirma ang available na schedule.' : 'Available slots are confirmed automatically.'}</p>
-              ) : <span />}
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end sm:gap-3">
-                {formStep === 2 && <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto">{isFilipino ? 'Bumalik' : 'Back'}</button>}
-                <button type="button" onClick={handleClose} className="min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto">{isFilipino ? 'Kanselahin' : 'Cancel'}</button>
-                {formStep === 1 ? (
-                  <button type="submit" disabled={!selectedService} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{isFilipino ? 'Magpatuloy sa iskedyul' : 'Continue to schedule'}</button>
-                ) : (
-                  <button type="submit" disabled={submitting || slotUnavailable || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="w-4 h-4 shrink-0" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
-                )}
+            {formStep === 2 && (
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 flex-1 rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:flex-none">{isFilipino ? 'Bumalik' : 'Back'}</button>
+                  <button type="button" onClick={handleClose} className="min-h-11 flex-1 rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:flex-none">{isFilipino ? 'Kanselahin' : 'Cancel'}</button>
+                </div>
+                <button type="submit" disabled={submitting || slotUnavailable || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-[#0f4d3c] px-5 py-2.5 text-base font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="h-4 w-4" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send request')}</button>
               </div>
-            </div>
+            )}
           </form>
         )}
       </section>
