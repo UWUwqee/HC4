@@ -66,7 +66,6 @@ export const OutreachBookingModal: React.FC = () => {
   const selectedService = services.find((service) => service.id === serviceId);
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [zone, setZone] = useState(COVERAGE_AREAS[0]);
   const [address, setAddress] = useState('');
   const [healthConcern, setHealthConcern] = useState('');
@@ -164,7 +163,6 @@ export const OutreachBookingModal: React.FC = () => {
       setError('');
       setPatientName('');
       setPhone('');
-      setEmail('');
       setAddress('');
       setHealthConcern('');
       setPatientAge('');
@@ -262,7 +260,6 @@ export const OutreachBookingModal: React.FC = () => {
         body: JSON.stringify({
           patientName,
           phone,
-          email,
           zone,
           address,
           healthConcern,
@@ -422,10 +419,6 @@ export const OutreachBookingModal: React.FC = () => {
               <div>
                 <label htmlFor="appointment-phone" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formPhone} *</label>
                 <input id="appointment-phone" required type="tel" inputMode="tel" autoComplete="tel" minLength={7} maxLength={32} value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="09XX XXX XXXX" className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
-              </div>
-              <div>
-                <label htmlFor="appointment-email" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formEmail}</label>
-                <input id="appointment-email" type="email" autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
               <div>
                 <label htmlFor="appointment-address" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Tirahan' : 'Street address'} *</label>
