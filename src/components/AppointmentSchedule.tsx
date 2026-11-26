@@ -3,13 +3,14 @@ import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
 import { BackToHomeButton } from './BackToHomeButton';
-import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
+import { formatAppointmentTime, getAppointmentTimeMinutes } from '../appointmentSchedule';
 
 interface ScheduleSlot {
   date: string;
   time: string;
   category: 'regular' | 'priority';
   bookedCount: number;
+  services: Array<{ id: string; name: string }>;
 }
 
 function dateLabel(value: string) {
@@ -59,15 +60,13 @@ export const AppointmentSchedule: React.FC = () => {
     };
   }, [isFilipino]);
 
-  const timeLabels: Record<string, string> = {
-    morning: isFilipino ? 'Umaga' : 'Morning',
-    afternoon: isFilipino ? 'Hapon' : 'Afternoon',
-    'no preference': isFilipino ? 'Anumang oras' : 'Any time',
-  };
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   const visibleSlots = slots.filter((slot) => slot.date >= today
     && (!fromDate || slot.date >= fromDate)
-    && (!toDate || slot.date <= toDate));
+    && (!toDate || slot.date <= toDate))
+    .slice()
+    .sort((first, second) => first.date.localeCompare(second.date)
+      || (getAppointmentTimeMinutes(first.time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.time) ?? 24 * 60));
 
   return (
     <section id="schedule" className="site-section-bg section-enter border-b border-[#dce7e1] py-3 sm:py-4">
@@ -81,7 +80,7 @@ export const AppointmentSchedule: React.FC = () => {
               {isFilipino ? 'Mga kumpirmadong appointment' : 'Accepted appointments'}
             </div>
             <h2 className="text-2xl font-bold text-[#0f4d3c] sm:text-3xl">
-              {isFilipino ? 'Mga petsa at oras' : 'Dates and Time Slots'}
+              {isFilipino ? 'Mga nakatakdang appointment' : 'Upcoming appointments'}
             </h2>
           </div>
         </div>
@@ -121,7 +120,7 @@ export const AppointmentSchedule: React.FC = () => {
                 .filter((slot) => slot.category === category)
                 .slice()
                 .sort((first, second) => first.date.localeCompare(second.date)
-                  || (APPOINTMENT_TIME_ORDER[first.time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.time] ?? 99));
+                  || (getAppointmentTimeMinutes(first.time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.time) ?? 24 * 60));
               if (categorySlots.length === 0) return null;
               return (
                 <section key={category} className="mb-5">
@@ -137,11 +136,35 @@ export const AppointmentSchedule: React.FC = () => {
                         <h4 className="mt-1 text-sm font-bold text-[#0f4d3c]">{dateLabel(slot.date)}</h4>
                         <div className="mt-3 flex items-center gap-2 border-t border-[#e7eee9] pt-3">
                           <Clock3 className="h-5 w-5 shrink-0 text-[#2c7a5f]" />
-                          <span className="text-base font-bold text-[#0f4d3c]">{timeLabels[slot.time] ?? slot.time}</span>
+                          <span className="text-base font-bold text-[#0f4d3c]">{formatAppointmentTime(slot.time)}</span>
                         </div>
                         <p className="mt-2 text-sm text-[#6b7280]">
                           <strong className="text-[#374151]">{slot.bookedCount}</strong> {isFilipino ? 'appointment na naaprubahan' : `accepted ${slot.bookedCount === 1 ? 'appointment' : 'appointments'}`}
                         </p>
+                        {slot.services?.length > 0 && (
+                          <div className="mt-3 space-y-3 rounded-md border border-[#dce7e1] bg-[#f7faf8] p-3">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-[#0f4d3c]">
+                              {isFilipino ? 'Mga serbisyo at pangkat ng pangangalaga' : 'Services and care team'}
+                            </p>
+                            {slot.services.map((service) => {
+                              const serviceDetails = siteContent.services.find((item) => item.id === service.id);
+                              const careTeam = serviceDetails?.keyPersonnel ?? [];
+                              return (
+                                <div key={service.id} className="border-t border-[#dce7e1] pt-2">
+                                  <p className="text-sm font-bold text-[#124d45]">
+                                    {isFilipino && serviceDetails?.titleFil ? serviceDetails.titleFil : service.name}
+                                  </p>
+                                  <p className="mt-1 text-xs leading-relaxed text-[#52635b]">
+                                    <span className="font-semibold">{isFilipino ? 'Pangkat:' : 'Care team:'}</span>{' '}
+                                    {careTeam.length > 0
+                                      ? careTeam.join(', ')
+                                      : (isFilipino ? 'Makipag-ugnayan sa health center para sa pagtatalaga.' : 'Contact the health center for the team assignment.')}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </article>
                     ))}
                   </div>

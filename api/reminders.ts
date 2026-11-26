@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { getContentDatabase } from './site-content-store.ts';
+import { formatAppointmentTime } from '../src/appointmentSchedule.ts';
 
 type ApiRequest = IncomingMessage & { headers: IncomingMessage['headers'] & { authorization?: string } };
 type ApiResponse = ServerResponse & {
@@ -70,7 +71,8 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       });
       if (claim.rowsAffected === 0) continue;
 
-      const message = `Reminder: Your appointment for ${String(appointment.service_name)} is tomorrow, ${String(appointment.preferred_date)} (${String(appointment.preferred_time)}). Please arrive on time.\n\nIf you need to cancel, open Messages and choose Cancel appointment. To request a schedule change, reply here so clinic staff can assist you.\n\nPaalala: Bukas ang iyong appointment para sa ${String(appointment.service_name)}, ${String(appointment.preferred_date)} (${String(appointment.preferred_time)}). Mangyaring dumating sa tamang oras. Maaari kang magkansela sa Messages o mag-reply rito upang humiling ng pagbabago sa iskedyul.`;
+      const appointmentTime = formatAppointmentTime(String(appointment.preferred_time));
+      const message = `This is an automated reminder.\n\nYour appointment for ${String(appointment.service_name)} is scheduled for ${String(appointment.preferred_date)} at ${appointmentTime}. Please arrive on time.\n\nFilipino:\nAwtomatikong paalala ito. Nakatakda ang iyong appointment para sa ${String(appointment.service_name)} sa ${String(appointment.preferred_date)}, ganap na ${appointmentTime}. Mangyaring dumating sa oras.`;
       await db.execute({
         sql: `INSERT INTO appointment_messages
               (id, appointment_id, sender_uid, sender_role, sender_name, message, created_at)

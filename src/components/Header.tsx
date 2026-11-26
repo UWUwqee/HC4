@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { SignInButton, useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { AccessibilityTools } from './AccessibilityTools';
 import { Menu, X, Globe, CalendarDays, LogOut, Mail, Accessibility } from 'lucide-react';
 import delfinSalongaLogo from '../assets/images/DELFIN.png';
 
@@ -10,8 +11,6 @@ export const Header: React.FC = () => {
     t,
     language,
     toggleLanguage,
-    accessibilityMode,
-    setAccessibilityMode,
     activeSection,
     setActiveSection,
     setBookingModalOpen,
@@ -24,6 +23,8 @@ export const Header: React.FC = () => {
   const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accessibilityOpen, setAccessibilityOpen] = useState(false);
+  const closeAccessibility = useCallback(() => setAccessibilityOpen(false), []);
 
   const navLinks = [
     { id: 'home', label: 'HOME' },
@@ -38,13 +39,8 @@ export const Header: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAccessibilityChange = (value: string) => {
-    if (value === 'standard' || value === 'high-contrast' || value === 'large-text') {
-      setAccessibilityMode(value);
-    }
-  };
-
   return (
+    <>
     <header className="header-enter sticky top-0 z-40 border-b border-[#dce7e1] bg-white/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-[60px] items-center justify-between gap-2 sm:gap-5">
@@ -82,14 +78,10 @@ export const Header: React.FC = () => {
               <Globe className="w-4 h-4" />
               <span className="text-sm font-medium">{language === 'en' ? 'Filipino' : 'English'}</span>
             </button>
-            <label className="flex items-center gap-1.5 text-[#4b5563]" title="Accessibility display settings">
-              <Accessibility className="h-4 w-4" aria-hidden="true" />
-              <select aria-label="Accessibility display settings" value={accessibilityMode} onChange={(event) => handleAccessibilityChange(event.target.value)} className="min-h-9 bg-transparent text-xs font-medium">
-                <option value="standard">Standard</option>
-                <option value="high-contrast">High contrast</option>
-                <option value="large-text">Large text</option>
-              </select>
-            </label>
+            <button type="button" onClick={() => setAccessibilityOpen(true)} aria-haspopup="dialog" aria-expanded={accessibilityOpen} aria-label={language === 'fil' ? 'Mga setting ng accessibility' : 'Accessibility settings'} title={language === 'fil' ? 'Mga setting ng accessibility' : 'Accessibility settings'} className="flex min-h-11 items-center gap-2 px-2 text-sm font-medium text-[#4b5563] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]">
+              <Accessibility className="h-5 w-5" aria-hidden="true" />
+              <span>{language === 'fil' ? 'Aksesibilidad' : 'Accessibility'}</span>
+            </button>
             {bookingEnabled && <button onClick={() => setBookingModalOpen(true)} title="Request an appointment" className="px-4 py-2.5 text-sm font-bold text-white bg-[#0f4d3c] hover:bg-[#2c7a5f] rounded-sm transition-colors whitespace-nowrap flex items-center gap-2">
               <CalendarDays className="w-4 h-4" />
               <span>REQUEST AN APPOINTMENT</span>
@@ -128,6 +120,17 @@ export const Header: React.FC = () => {
               </SignInButton>
             )}
             <button
+              type="button"
+              onClick={() => setAccessibilityOpen(true)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center text-[#4b5563] hover:bg-[#eaf3ee] hover:text-[#0f4d3c] xl:hidden"
+              aria-haspopup="dialog"
+              aria-expanded={accessibilityOpen}
+              aria-label={language === 'fil' ? 'Mga setting ng accessibility' : 'Accessibility settings'}
+              title={language === 'fil' ? 'Accessibility' : 'Accessibility'}
+            >
+              <Accessibility className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#374151] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]"
               aria-label="Toggle navigation menu"
@@ -159,15 +162,10 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="pt-3 border-t border-[#e7eee9]">
-            <label className="flex min-h-11 items-center gap-2 px-3 text-sm font-semibold text-[#4b5563]">
+            <button type="button" onClick={() => setAccessibilityOpen(true)} aria-haspopup="dialog" aria-expanded={accessibilityOpen} className="mb-2 flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#4b5563] hover:bg-[#f8faf9]">
               <Accessibility className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="flex-1">Accessibility</span>
-              <select aria-label="Accessibility display settings" value={accessibilityMode} onChange={(event) => handleAccessibilityChange(event.target.value)} className="min-h-11 max-w-[55%] bg-transparent text-sm">
-                <option value="standard">Standard</option>
-                <option value="high-contrast">High contrast</option>
-                <option value="large-text">Large text</option>
-              </select>
-            </label>
+              <span>{language === 'fil' ? 'Mga setting ng accessibility' : 'Accessibility settings'}</span>
+            </button>
             {bookingEnabled && <button onClick={() => { setBookingModalOpen(true); setMobileMenuOpen(false); }} className="min-h-11 w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#0f4d3c] hover:bg-[#2c7a5f] rounded-md flex items-center justify-center gap-2">
               <CalendarDays className="w-4 h-4" />
               <span>REQUEST AN APPOINTMENT</span>
@@ -182,5 +180,7 @@ export const Header: React.FC = () => {
         </div>
       )}
     </header>
+    <AccessibilityTools open={accessibilityOpen} onClose={closeAccessibility} />
+    </>
   );
 };

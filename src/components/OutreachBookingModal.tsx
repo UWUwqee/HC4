@@ -3,10 +3,17 @@ import { useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
 import { COVERAGE_AREAS, DELFIN_SALONGA_SERVICES } from '../data/delfinSalongaClinicInfo';
+import {
+  APPOINTMENT_TIME_SLOTS,
+  formatAppointmentTime,
+  getAppointmentTimePeriod,
+  getEarliestAppointmentDate,
+  isAppointmentTimeAvailable,
+} from '../appointmentSchedule';
 
 interface AppointmentReceipt {
   referenceCode: string;
-  status: 'pending';
+  status: 'pending' | 'confirmed';
   createdAt: string;
 }
 
@@ -20,20 +27,25 @@ interface PendingAppointmentRequest {
   referenceCode: string;
   preferredDate: string;
   preferredTime: string;
+  status: 'pending' | 'confirmed';
 }
 
-function localDateString() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Manila',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+interface UnavailableAppointmentSlot {
+  date: string;
+  time: string;
+  hasRegularBooking: boolean;
+  hasPriorityBooking: boolean;
 }
 
 function appointmentServiceLabel(service: { id: string; title: string; titleFil: string }, isFilipino: boolean) {
   return isFilipino ? service.titleFil : service.title;
 }
+
+const priorityOptions = [
+  { value: 'pwd', label: 'Person with disability (PWD)', labelFil: 'Taong may kapansanan (PWD)' },
+  { value: 'senior_citizen', label: 'Senior citizen (60+)', labelFil: 'Senior citizen (60 pataas)' },
+  { value: 'pregnant_lactating', label: 'Pregnant or lactating', labelFil: 'Buntis o nagpapasuso' },
+] as const;
 
 export const OutreachBookingModal: React.FC = () => {
   const { getToken } = useAuth();
@@ -43,14 +55,16 @@ export const OutreachBookingModal: React.FC = () => {
     bookingModalOpen,
     setBookingModalOpen,
     clinicOpen,
-    markAppointmentRequestPending,
+    markAppointmentRequestStatus,
     selectedProgramForBooking,
     siteContent,
   } = useHealthCenter();
   const services = siteContent.services;
+  const isFilipino = language === 'fil';
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const formRef = useRef<HTMLFormElement>(null);
   const [serviceId, setServiceId] = useState('checkup');
+  const selectedService = services.find((service) => service.id === serviceId);
   const [patientName, setPatientName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -58,16 +72,43 @@ export const OutreachBookingModal: React.FC = () => {
   const [address, setAddress] = useState('');
   const [healthConcern, setHealthConcern] = useState('');
   const [patientAge, setPatientAge] = useState('');
-  const [preferredDate, setPreferredDate] = useState(localDateString);
-  const [preferredTime, setPreferredTime] = useState('morning');
+  const [priorityCategories, setPriorityCategories] = useState<string[]>([]);
+  const [now, setNow] = useState(() => new Date());
+  const [preferredDate, setPreferredDate] = useState(() => getEarliestAppointmentDate());
+  const [preferredTime, setPreferredTime] = useState('09:00');
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [attendanceConsent, setAttendanceConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [availabilityError, setAvailabilityError] = useState('');
   const [receipt, setReceipt] = useState<AppointmentReceipt | null>(null);
   const [slotSettings, setSlotSettings] = useState<PublicSlotSetting[]>([]);
+  const [unavailableSlots, setUnavailableSlots] = useState<UnavailableAppointmentSlot[]>([]);
   const [pendingRequest, setPendingRequest] = useState<PendingAppointmentRequest | null>(null);
   const [pendingRequestLoaded, setPendingRequestLoaded] = useState(false);
+  const earliestDate = getEarliestAppointmentDate(now);
+  const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
+  const isTimeBlocked = (time: string) => {
+    const period = getAppointmentTimePeriod(time);
+    return slotSettings.some((setting) => setting.date === preferredDate
+      && setting.blocked
+      && (setting.time === time || setting.time === period));
+  };
+  const isTimeTaken = (time: string) => unavailableSlots.some((slot) => (
+    slot.date === preferredDate
+    && slot.time === time
+    && (priorityCategories.length > 0
+      ? slot.hasPriorityBooking
+      : slot.hasRegularBooking || slot.hasPriorityBooking)
+  ));
+  const slotUnavailable = dateBlocked
+    || isTimeBlocked(preferredTime)
+    || isTimeTaken(preferredTime)
+    || !isAppointmentTimeAvailable(preferredDate, preferredTime, now);
+  const priorityReason = priorityCategories
+    .map((category) => priorityOptions.find((option) => option.value === category)?.[isFilipino ? 'labelFil' : 'label'])
+    .filter(Boolean)
+    .join(', ');
 
   useEffect(() => {
     if (selectedProgramForBooking && services.some((service) => service.id === selectedProgramForBooking)) {
@@ -82,6 +123,42 @@ export const OutreachBookingModal: React.FC = () => {
   }, [services, serviceId]);
 
   useEffect(() => {
+    if (!bookingModalOpen) return;
+    const timer = window.setInterval(() => setNow(new Date()), 15_000);
+    return () => window.clearInterval(timer);
+  }, [bookingModalOpen]);
+
+  useEffect(() => {
+    setPreferredDate((current) => current < earliestDate ? earliestDate : current);
+  }, [earliestDate]);
+
+  useEffect(() => {
+    const isMaternityService = selectedService?.category === 'maternity';
+    setPriorityCategories((current) => {
+      const next = current.filter((category) => (
+        category !== 'senior_citizen' && category !== 'pregnant_lactating'
+      ));
+      if (Number(patientAge) >= 60) next.push('senior_citizen');
+      if (isMaternityService) next.push('pregnant_lactating');
+      return next.sort();
+    });
+  }, [patientAge, selectedService?.category]);
+
+  useEffect(() => {
+    if (!dateBlocked
+      && isAppointmentTimeAvailable(preferredDate, preferredTime, now)
+      && !isTimeBlocked(preferredTime)
+      && !isTimeTaken(preferredTime)) return;
+    const nextAvailableTime = APPOINTMENT_TIME_SLOTS.find((time) => (
+      !dateBlocked
+      && isAppointmentTimeAvailable(preferredDate, time, now)
+      && !isTimeBlocked(time)
+      && !isTimeTaken(time)
+    ));
+    if (nextAvailableTime) setPreferredTime(nextAvailableTime);
+  }, [dateBlocked, preferredDate, preferredTime, now, slotSettings, unavailableSlots, priorityCategories]);
+
+  useEffect(() => {
     if (!bookingModalOpen) {
       setFormStep(1);
       setReceipt(null);
@@ -92,7 +169,9 @@ export const OutreachBookingModal: React.FC = () => {
       setAddress('');
       setHealthConcern('');
       setPatientAge('');
+      setPriorityCategories([]);
       setPrivacyConsent(false);
+      setAttendanceConsent(false);
     }
   }, [bookingModalOpen]);
 
@@ -112,20 +191,25 @@ export const OutreachBookingModal: React.FC = () => {
         });
         const result = await response.json() as {
           slotSettings?: PublicSlotSetting[];
+          unavailableSlots?: UnavailableAppointmentSlot[];
           appointments?: Array<{ reference_code: string; preferred_date: string; preferred_time: string; status: string }>;
           error?: string;
         };
-        if (!response.ok || !Array.isArray(result.slotSettings)) {
+        if (!response.ok || !Array.isArray(result.slotSettings) || !Array.isArray(result.unavailableSlots)) {
           throw new Error(result.error || 'Appointment availability could not be loaded.');
         }
         if (active) {
           setSlotSettings(result.slotSettings);
-          const pending = result.appointments?.find((appointment) => appointment.status.toLowerCase() === 'pending');
-          setPendingRequest(pending ? {
-            referenceCode: pending.reference_code,
-            preferredDate: pending.preferred_date,
-            preferredTime: pending.preferred_time,
+          setUnavailableSlots(result.unavailableSlots);
+          const activeAppointment = result.appointments?.find((appointment) => ['pending', 'confirmed'].includes(appointment.status.toLowerCase()));
+          const status = activeAppointment?.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending';
+          setPendingRequest(activeAppointment ? {
+            referenceCode: activeAppointment.reference_code,
+            preferredDate: activeAppointment.preferred_date,
+            preferredTime: activeAppointment.preferred_time,
+            status,
           } : null);
+          if (activeAppointment) markAppointmentRequestStatus(status);
           setPendingRequestLoaded(true);
           setAvailabilityError('');
         }
@@ -137,26 +221,16 @@ export const OutreachBookingModal: React.FC = () => {
       }
     };
     void loadAvailability();
-    const timer = window.setInterval(() => void loadAvailability(), 3000);
+    const timer = window.setInterval(() => void loadAvailability(), 10_000);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [bookingModalOpen, getToken]);
+  }, [bookingModalOpen, getToken, markAppointmentRequestStatus]);
 
   if (!bookingModalOpen) return null;
 
-  const isFilipino = language === 'fil';
   const canSubmitAppointment = clinicOpen === true;
-  const selectedService = services.find((service) => service.id === serviceId);
-  const priorityReason = Number(patientAge) >= 60
-    ? (isFilipino ? 'senior citizen' : 'senior')
-    : selectedService?.category === 'maternity' ? (isFilipino ? 'maternity care' : 'maternity care') : '';
-  const today = localDateString();
-  const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
-  const timeBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === preferredTime && setting.blocked);
-  const slotUnavailable = dateBlocked || timeBlocked;
-
   const handleClose = () => setBookingModalOpen(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -198,30 +272,32 @@ export const OutreachBookingModal: React.FC = () => {
           zone,
           address,
           healthConcern,
-          patientAge: patientAge ? Number(patientAge) : undefined,
+          age: Number(patientAge),
+          priorityCategories,
           serviceId,
           preferredDate,
           preferredTime,
           privacyConsent,
+          attendanceConsent,
         }),
       });
       const responseBody = await response.text();
       let result: AppointmentReceipt & {
         error?: string;
-        pendingRequest?: PendingAppointmentRequest;
+        activeAppointment?: PendingAppointmentRequest;
       };
       try {
-        result = JSON.parse(responseBody) as AppointmentReceipt & { error?: string };
+        result = JSON.parse(responseBody) as AppointmentReceipt & { error?: string; activeAppointment?: PendingAppointmentRequest };
       } catch {
         throw new Error(isFilipino
           ? 'Pansamantalang hindi magamit ang serbisyo ng appointment. Subukan muli mamaya.'
           : `Appointment service is temporarily unavailable (HTTP ${response.status}). Please try again later.`);
       }
       if (!response.ok) {
-        if (response.status === 409 && result.pendingRequest) {
-          setPendingRequest(result.pendingRequest);
+        if (response.status === 409 && result.activeAppointment) {
+          setPendingRequest(result.activeAppointment);
           setPendingRequestLoaded(true);
-          markAppointmentRequestPending();
+          markAppointmentRequestStatus(result.activeAppointment.status);
         }
         const message = response.status === 401
           ? 'Your sign-in could not be verified by Clerk. Check the Clerk configuration in Vercel, then redeploy.'
@@ -232,8 +308,9 @@ export const OutreachBookingModal: React.FC = () => {
         referenceCode: result.referenceCode,
         preferredDate,
         preferredTime,
+        status: result.status,
       });
-      markAppointmentRequestPending();
+      markAppointmentRequestStatus(result.status);
       setReceipt(result);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Could not submit your appointment request.');
@@ -263,8 +340,8 @@ export const OutreachBookingModal: React.FC = () => {
         <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:gap-5 sm:px-7 sm:py-5">
           <div className="min-w-0">
             <div className="text-xs font-bold uppercase tracking-wider text-teal-800">Delfin Salonga Health Center</div>
-            <h2 id="appointment-title" className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{receipt ? (isFilipino ? 'Natanggap ang request' : 'Request received') : (isFilipino ? 'Online appointment request' : 'REQUEST AN APPOINTMENT')}</h2>
-            {!receipt && <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Ipadala ang iyong kahilingan. Tatawagan ka ng kawani para kumpirmahin ang oras.' : 'Send your preferred schedule. Clinic staff will contact you to confirm.'}</p>}
+            <h2 id="appointment-title" className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">{receipt ? (receipt.status === 'confirmed' ? (isFilipino ? 'Kumpirmado ang appointment' : 'Appointment confirmed') : (isFilipino ? 'Natanggap ang request' : 'Request received')) : (isFilipino ? 'Online appointment request' : 'REQUEST AN APPOINTMENT')}</h2>
+            {!receipt && <p className="mt-1 text-sm text-slate-600">{isFilipino ? 'Pumili ng 30-minutong schedule. Awtomatikong kinukumpirma ang mga available na oras.' : 'Choose a 30-minute schedule. Available time slots are confirmed automatically.'}</p>}
           </div>
           <button onClick={handleClose} aria-label="Close appointment form" className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
         </header>
@@ -274,10 +351,14 @@ export const OutreachBookingModal: React.FC = () => {
             <div className="flex items-start gap-4">
               <CheckCircle2 className="w-7 h-7 text-teal-800 shrink-0" />
               <div>
-                <h3 className="text-lg font-bold text-slate-950">{isFilipino ? 'Nakatala ang iyong appointment request.' : 'Your appointment request is recorded.'}</h3>
-                <p className="mt-2 text-sm text-slate-600">{isFilipino ? 'Hindi pa ito kumpirmadong appointment. Makikipag-ugnayan ang clinic staff para kumpirmahin ang schedule.' : 'This is not a confirmed appointment yet. Clinic staff will contact you to confirm the schedule.'}</p>
+                <h3 className="text-lg font-bold text-slate-950">{receipt.status === 'confirmed'
+                  ? (isFilipino ? 'Awtomatikong nakumpirma ang iyong appointment.' : 'Your appointment was automatically confirmed.')
+                  : (isFilipino ? 'Nakatala ang iyong appointment request.' : 'Your appointment request is recorded.')}</h3>
+                <p className="mt-2 text-sm text-slate-600">{receipt.status === 'confirmed'
+                  ? (isFilipino ? 'Makikita ang kumpirmasyon sa iyong appointment chat.' : 'The confirmation is available in your appointment chat.')
+                  : (isFilipino ? 'Naghihintay ito ng pagsusuri ng kawani.' : 'It is waiting for staff review.')}</p>
                 <p className="mt-4 text-sm text-slate-700">{selectedService && appointmentServiceLabel(selectedService, isFilipino)}</p>
-                <p className="mt-1 text-sm text-slate-600">{preferredDate} · {preferredTime === 'morning' ? 'Morning' : preferredTime === 'afternoon' ? 'Afternoon' : 'No preference'} · {zone}</p>
+                <p className="mt-1 text-sm text-slate-600">{preferredDate} · {formatAppointmentTime(preferredTime)} · {zone}</p>
                 <p className="mt-4 text-xs text-slate-500">{isFilipino ? 'Reference number' : 'Request reference'}: <strong className="font-mono text-slate-900">{receipt.referenceCode}</strong></p>
                 <button onClick={handleClose} className="mt-6 px-4 py-2.5 bg-teal-900 text-white text-sm font-bold rounded-md hover:bg-teal-950">{isFilipino ? 'Isara' : 'Done'}</button>
               </div>
@@ -286,16 +367,22 @@ export const OutreachBookingModal: React.FC = () => {
         ) : pendingRequest ? (
           <div className="space-y-4 px-4 py-6 sm:px-7 sm:py-8" role="status" aria-live="polite">
             <div className="border border-amber-200 bg-amber-50 p-4 text-amber-950">
-              <h3 className="text-base font-bold">{isFilipino ? 'May request ka pang sinusuri' : 'You already have a request under review'}</h3>
+              <h3 className="text-base font-bold">{pendingRequest.status === 'confirmed'
+                ? (isFilipino ? 'May aktibo ka pang kumpirmadong appointment' : 'You already have an active confirmed appointment')
+                : (isFilipino ? 'May request ka pang sinusuri' : 'You already have a request under review')}</h3>
               <p className="mt-2 text-sm leading-relaxed">
-                {isFilipino
-                  ? 'Maghintay ng aksyon ng clinic staff bago magpadala ng panibagong appointment request. Maaari kang mag-request muli kapag tinanggap o tinanggihan na ang kasalukuyang request.'
-                  : 'Please wait for clinic staff to accept or reject this request before sending another appointment request.'}
+                {pendingRequest.status === 'confirmed'
+                  ? (isFilipino
+                    ? 'Kumpletuhin o kanselahin muna ang appointment na ito bago magpadala ng panibagong request.'
+                    : 'Complete or cancel this appointment before submitting another request.')
+                  : (isFilipino
+                    ? 'Maghintay ng aksyon ng clinic staff bago magpadala ng panibagong appointment request.'
+                    : 'Please wait for clinic staff to review this request before sending another appointment request.')}
               </p>
             </div>
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div><dt className="text-xs font-semibold text-slate-500">{isFilipino ? 'Reference number' : 'Request reference'}</dt><dd className="break-all font-mono font-bold text-slate-900">{pendingRequest.referenceCode}</dd></div>
-              <div><dt className="text-xs font-semibold text-slate-500">{isFilipino ? 'Petsa at oras' : 'Preferred schedule'}</dt><dd className="font-semibold text-slate-900">{pendingRequest.preferredDate} · {pendingRequest.preferredTime}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">{isFilipino ? 'Petsa at oras' : 'Appointment schedule'}</dt><dd className="font-semibold text-slate-900">{pendingRequest.preferredDate} · {formatAppointmentTime(pendingRequest.preferredTime)}</dd></div>
             </dl>
             <p className="text-xs text-slate-500">{isFilipino ? 'Awtomatikong susuriin muli ang status habang bukas ang pahinang ito.' : 'This page will automatically check again while it is open.'}</p>
           </div>
@@ -358,44 +445,83 @@ export const OutreachBookingModal: React.FC = () => {
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="appointment-concern" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Pangunahing dahilan ng pagbisita' : 'Main reason for visit'} *</label>
-                <textarea id="appointment-concern" required minLength={2} maxLength={500} rows={3} value={healthConcern} onChange={(event) => setHealthConcern(event.target.value)} className="w-full resize-y border border-slate-300 px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <textarea id="appointment-concern" required minLength={2} maxLength={2000} rows={3} value={healthConcern} onChange={(event) => setHealthConcern(event.target.value)} className="w-full resize-y border border-slate-300 px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
                 <p className="mt-1 text-xs text-slate-500">{isFilipino ? 'Huwag ilagay dito ang impormasyong hindi kailangan para sa pag-iskedyul.' : 'Share only information needed to arrange your visit.'}</p>
               </div>
               <div>
-                <label htmlFor="appointment-age" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Edad (opsyonal)' : 'Age (optional)'}</label>
-                <input id="appointment-age" type="number" min={1} max={120} inputMode="numeric" value={patientAge} onChange={(event) => setPatientAge(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <label htmlFor="appointment-age" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Edad' : 'Age'} *</label>
+                <input id="appointment-age" required type="number" min={0} max={120} step={1} inputMode="numeric" value={patientAge} onChange={(event) => setPatientAge(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
+              <fieldset className="sm:col-span-2">
+                <legend className="mb-2 text-sm font-semibold text-slate-800">{isFilipino ? 'Mga kategorya para sa priority' : 'Priority categories'}</legend>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {priorityOptions.map((option) => {
+                    const automatic = (option.value === 'senior_citizen' && Number(patientAge) >= 60)
+                      || (option.value === 'pregnant_lactating' && selectedService?.category === 'maternity');
+                    return (
+                      <label key={option.value} className="flex min-h-11 items-start gap-2 border border-slate-200 px-3 py-2 text-xs leading-relaxed text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={priorityCategories.includes(option.value)}
+                          disabled={automatic}
+                          onChange={(event) => setPriorityCategories((current) => event.target.checked
+                            ? [...new Set([...current, option.value])]
+                            : current.filter((category) => category !== option.value))}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-teal-800"
+                        />
+                        <span>{isFilipino ? option.labelFil : option.label}{automatic && <span className="block text-[10px] text-teal-800">{isFilipino ? 'Awtomatikong pinili' : 'Automatically selected'}</span>}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
               {priorityReason && (
                 <p className="sm:col-span-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                   {isFilipino
-                    ? `Awtomatikong ilalagay ang request sa priority review batay sa ${priorityReason}.`
-                    : `This request will be included in priority review based on ${priorityReason}.`}
+                    ? `Awtomatikong ilalagay ang appointment sa priority schedule batay sa ${priorityReason}.`
+                    : `This appointment will be included in the priority schedule based on ${priorityReason}.`}
                 </p>
               )}
+              <label className="sm:col-span-2 flex items-start gap-3 border border-amber-300 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
+                <input type="checkbox" required checked={attendanceConsent} onChange={(event) => setAttendanceConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-teal-800" />
+                <span><strong className="font-bold">{isFilipino ? 'Mahalagang paalala: ' : 'Important reminder: '}</strong>{isFilipino ? 'Nauunawaan kong makakansela ang appointment ko kapag hindi ako dumating sa takdang oras, at kailangan kong magsumite muli ng request.' : 'I understand that missing my appointment will cancel it, and I’ll need to submit a new request.'}</span>
+              </label>
             </div>
             ) : (
             <>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="appointment-date" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formDate} *</label>
-                <input id="appointment-date" required type="date" min={today} value={preferredDate} onChange={(event) => setPreferredDate(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <input id="appointment-date" required type="date" min={earliestDate} value={preferredDate} onChange={(event) => setPreferredDate(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
               <div>
                 <label htmlFor="appointment-time" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formTimeSlot} *</label>
                 <select id="appointment-time" value={preferredTime} onChange={(event) => setPreferredTime(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option value="morning">{isFilipino ? 'Umaga' : 'Morning'}</option>
-                  <option value="afternoon">{isFilipino ? 'Hapon' : 'Afternoon'}</option>
-                  <option value="no preference">{isFilipino ? 'Anumang oras' : 'No preference'}</option>
+                  {APPOINTMENT_TIME_SLOTS.map((time) => {
+                    const unavailable = dateBlocked
+                      || !isAppointmentTimeAvailable(preferredDate, time, now)
+                      || isTimeBlocked(time)
+                      || isTimeTaken(time);
+                    return (
+                      <option key={time} value={time} disabled={unavailable}>
+                        {formatAppointmentTime(time)}{unavailable ? (isFilipino ? ' — Hindi available' : ' — Unavailable') : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
 
-            {slotUnavailable && <p role="status" className="text-sm font-semibold text-rose-800">{isFilipino ? 'Sarado ang napiling petsa o time slot. Pumili ng ibang schedule.' : 'This date or time slot is blocked by clinic staff. Choose a different schedule.'}</p>}
+            {slotUnavailable && <p role="status" className="text-sm font-semibold text-rose-800">{dateBlocked || isTimeBlocked(preferredTime)
+              ? (isFilipino ? 'Sarado ang napiling petsa o oras. Pumili ng ibang schedule.' : 'The selected date or time is blocked. Choose a different schedule.')
+              : isTimeTaken(preferredTime)
+                ? (isFilipino ? 'May naka-book na sa oras na ito. Pumili ng ibang schedule.' : 'This time is already booked. Choose another slot.')
+                : (isFilipino ? 'Lumipas na ang oras na ito. Pumili ng ibang schedule.' : 'This time has passed. Choose another slot.')}</p>}
             {availabilityError && <p role="status" className="text-xs text-amber-800">{isFilipino ? 'Hindi ma-check ang availability. Susuriin muli ang napiling schedule kapag ipinadala.' : 'Availability could not be checked. The server will verify your selected schedule when you submit.'}</p>}
 
             <label className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm text-slate-600">
               <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-800" />
-              <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang impormasyong inilagay ko upang suriin at sagutin ang appointment request na ito.' : 'I agree that health center staff may use the information I provided to review and respond to this appointment request.'}</span>
+              <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang impormasyong inilagay ko upang kumpirmahin at pamahalaan ang appointment na ito.' : 'I agree that health center staff may use the information I provided to confirm and manage this appointment.'}</span>
             </label>
             </>
             )}
@@ -404,7 +530,7 @@ export const OutreachBookingModal: React.FC = () => {
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-200 pt-4">
               {formStep === 2 ? (
-                <p className="flex items-center gap-2 text-xs text-slate-500"><Clock className="w-4 h-4" />{isFilipino ? 'Pending ang request hanggang makumpirma ng staff.' : 'Requests remain pending until staff confirm.'}</p>
+                <p className="flex items-center gap-2 text-xs text-slate-500"><Clock className="w-4 h-4" />{isFilipino ? 'Awtomatikong makukumpirma ang available na schedule.' : 'Available slots are confirmed automatically.'}</p>
               ) : <span />}
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end sm:gap-3">
                 {formStep === 2 && <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto">{isFilipino ? 'Bumalik' : 'Back'}</button>}
@@ -412,7 +538,7 @@ export const OutreachBookingModal: React.FC = () => {
                 {formStep === 1 ? (
                   <button type="submit" disabled={!canSubmitAppointment || !selectedService} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{isFilipino ? 'Magpatuloy sa iskedyul' : 'Continue to schedule'}</button>
                 ) : (
-                  <button type="submit" disabled={submitting || !canSubmitAppointment || !selectedService || !privacyConsent} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="w-4 h-4 shrink-0" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
+                  <button type="submit" disabled={submitting || slotUnavailable || !canSubmitAppointment || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="w-4 h-4 shrink-0" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
                 )}
               </div>
             </div>

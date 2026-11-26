@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useAuth } from '@clerk/react';
 import { DEFAULT_CLINIC_PUBLIC_SETTINGS, SERVICES_DATA } from '../data/healthCenterData';
 import type { ClinicPublicSettings, PublicSiteContent } from '../types';
 
 export type Language = 'en' | 'fil';
-export type AccessibilityMode = 'standard' | 'high-contrast' | 'large-text';
-export type AppointmentRequestAvailability = 'checking' | 'available' | 'pending' | 'error';
+export type AppointmentRequestAvailability = 'checking' | 'available' | 'pending' | 'confirmed' | 'error';
 
 export interface PatientAppointment {
   id: string;
@@ -107,9 +106,8 @@ interface AppointmentApiRow {
 interface HealthCenterContextValue {
   t: (typeof TRANSLATIONS)['en'];
   language: Language;
+  setLanguage: (language: Language) => void;
   toggleLanguage: () => void;
-  accessibilityMode: AccessibilityMode;
-  setAccessibilityMode: (mode: AccessibilityMode) => void;
   activeSection: string;
   setActiveSection: (section: string) => void;
   siteContent: PublicSiteContent;
@@ -121,7 +119,7 @@ interface HealthCenterContextValue {
   setBookingModalOpen: (open: boolean) => void;
   selectedProgramForBooking: string;
   openBookingForProgram: (programId: string) => void;
-  markAppointmentRequestPending: () => void;
+  markAppointmentRequestStatus: (status: 'pending' | 'confirmed') => void;
   appointments: PatientAppointment[];
   cancelAppointment: (id: string) => Promise<void>;
   messagesOpen: boolean;
@@ -158,13 +156,9 @@ function appointmentFromApi(row: AppointmentApiRow): PatientAppointment {
 
 export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { getToken, isSignedIn } = useAuth();
-  const [language, setLanguage] = useState<Language>(() => (
+  const [language, setLanguageState] = useState<Language>(() => (
     localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
   ));
-  const [accessibilityMode, setAccessibilityMode] = useState<AccessibilityMode>(() => {
-    const storedMode = localStorage.getItem('delfin-salonga-accessibility');
-    return storedMode === 'high-contrast' || storedMode === 'large-text' ? storedMode : 'standard';
-  });
   const [activeSection, setActiveSectionState] = useState('home');
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT);
   const [siteContentError, setSiteContentError] = useState('');
@@ -180,19 +174,12 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notificationToast, setNotificationToast] = useState('');
 
   const setActiveSection = (section: string) => setActiveSectionState(section);
-  const toggleLanguage = () => setLanguage((current) => {
-    const next = current === 'en' ? 'fil' : 'en';
-    localStorage.setItem('delfin-salonga-language', next);
-    return next;
-  });
+  const setLanguage = (nextLanguage: Language) => {
+    localStorage.setItem('delfin-salonga-language', nextLanguage);
+    setLanguageState(nextLanguage);
+  };
+  const toggleLanguage = () => setLanguage(language === 'en' ? 'fil' : 'en');
 
-  useEffect(() => {
-    document.documentElement.dataset.accessibilityMode = accessibilityMode;
-    localStorage.setItem('delfin-salonga-accessibility', accessibilityMode);
-    return () => {
-      delete document.documentElement.dataset.accessibilityMode;
-    };
-  }, [accessibilityMode]);
   const setBookingModalOpen = (open: boolean) => {
     setBookingModalOpenState(open);
     if (!open) setSelectedProgramForBooking('');
@@ -201,7 +188,9 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     setSelectedProgramForBooking(programId);
     setBookingModalOpenState(true);
   };
-  const markAppointmentRequestPending = () => setAppointmentRequestAvailability('pending');
+  const markAppointmentRequestStatus = useCallback((status: 'pending' | 'confirmed') => {
+    setAppointmentRequestAvailability(status);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -275,9 +264,11 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
         setAppointments(nextAppointments);
         setAppointmentRequestAvailability(nextAppointments.some((appointment) => appointment.status === 'Pending')
           ? 'pending'
-          : 'available');
+          : nextAppointments.some((appointment) => appointment.status === 'Confirmed')
+            ? 'confirmed'
+            : 'available');
       } catch {
-        if (active) setAppointmentRequestAvailability((current) => current === 'pending' ? current : 'error');
+        if (active) setAppointmentRequestAvailability((current) => current === 'pending' || current === 'confirmed' ? current : 'error');
       }
     };
 
@@ -343,9 +334,8 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     <HealthCenterContext.Provider value={{
       t: TRANSLATIONS[language],
       language,
+      setLanguage,
       toggleLanguage,
-      accessibilityMode,
-      setAccessibilityMode,
       activeSection,
       setActiveSection,
       siteContent,
@@ -357,7 +347,7 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
       setBookingModalOpen,
       selectedProgramForBooking,
       openBookingForProgram,
-      markAppointmentRequestPending,
+      markAppointmentRequestStatus,
       appointments,
       cancelAppointment,
       messagesOpen,

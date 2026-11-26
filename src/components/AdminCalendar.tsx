@@ -1,6 +1,6 @@
 import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Ban, CalendarDays, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
-import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
+import { formatAppointmentTime, getAppointmentTimeMinutes, getAppointmentTimePeriod } from '../appointmentSchedule';
 
 export interface CalendarAppointment {
   id: string;
@@ -134,7 +134,7 @@ export const AdminCalendar: React.FC<AdminCalendarProps> = ({
   const selectedAppointments = useMemo(() => (appointmentsByDate[selectedDate] ?? [])
     .slice()
     .sort((first, second) => {
-      return (APPOINTMENT_TIME_ORDER[first.preferred_time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.preferred_time] ?? 99)
+      return (getAppointmentTimeMinutes(first.preferred_time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.preferred_time) ?? 24 * 60)
         || first.patient_name.localeCompare(second.patient_name);
     }), [appointmentsByDate, selectedDate]);
 
@@ -244,7 +244,7 @@ export const AdminCalendar: React.FC<AdminCalendarProps> = ({
             {selectedAppointments.map((appointment) => (
               <button key={appointment.id} type="button" onClick={() => onSelectAppointment(appointment.id)} className="w-full px-4 py-3 text-left hover:bg-[#f6f9f6]">
                 <div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-bold">{appointment.patient_name}</span><span className="flex shrink-0 gap-1"><span className={`px-1.5 py-1 text-[9px] font-bold uppercase ${appointment.priority_type === 'priority' ? 'bg-violet-100 text-violet-800' : 'bg-slate-100 text-slate-600'}`}>{appointment.priority_type === 'priority' ? 'Priority' : 'Regular'}</span><span className={`px-2 py-1 text-[9px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>{appointment.status}</span></span></div>
-                <div className="mt-1 flex items-center gap-1 text-xs text-[#66736f]"><Clock3 className="h-3.5 w-3.5" />{appointment.preferred_time} · {appointment.service_name}</div>
+                <div className="mt-1 flex items-center gap-1 text-xs text-[#66736f]"><Clock3 className="h-3.5 w-3.5" />{formatAppointmentTime(appointment.preferred_time)} · {appointment.service_name}</div>
               </button>
             ))}
             {selectedAppointments.length === 0 && <p className="px-4 py-5 text-xs text-[#87938c]">No appointment requests for this date.</p>}
@@ -261,7 +261,7 @@ export const AdminCalendar: React.FC<AdminCalendarProps> = ({
             Block all appointment requests for this date
           </label>
           {timeSlots.map(({ id, label, field, blocked, capacity }) => {
-            const acceptedCount = (appointmentsByDate[selectedDate] ?? []).filter((appointment) => appointment.status === 'confirmed' && appointment.priority_type !== 'priority' && appointment.preferred_time === id).length;
+            const acceptedCount = (appointmentsByDate[selectedDate] ?? []).filter((appointment) => appointment.status === 'confirmed' && appointment.priority_type !== 'priority' && getAppointmentTimePeriod(appointment.preferred_time) === id).length;
             return (
               <div key={id} className="space-y-2 border-t border-[#edf1ee] pt-3">
                 <div className="flex items-center justify-between">

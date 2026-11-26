@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
+import { formatAppointmentTime, getAppointmentTimeMinutes } from '../appointmentSchedule';
 
 interface ReportAppointment {
   reference_code: string;
@@ -31,7 +31,7 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
     && (service === 'all' || item.service_name === service)
   )).sort((first, second) =>
     first.preferred_date.localeCompare(second.preferred_date)
-    || (APPOINTMENT_TIME_ORDER[first.preferred_time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.preferred_time] ?? 99)
+    || (getAppointmentTimeMinutes(first.preferred_time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.preferred_time) ?? 24 * 60)
     || first.created_at.localeCompare(second.created_at)), [appointments, fromDate, toDate, service]);
 
   const exportCsv = () => {
@@ -79,7 +79,7 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
         <table className="w-full min-w-[720px] border-collapse text-left text-xs">
           <thead className="bg-[#f2f6f2] text-[10px] uppercase tracking-wide text-[#66736f]"><tr>{['Appointment date', 'Patient', 'Service', 'Status', 'Reference'].map((heading) => <th key={heading} className="px-3 py-3 font-bold">{heading}</th>)}</tr></thead>
           <tbody className="divide-y divide-[#edf1ee]">
-            {filtered.map((item) => <tr key={item.reference_code}><td className="px-3 py-3">{item.preferred_date} · {item.preferred_time}</td><td className="px-3 py-3 font-semibold">{item.patient_name}</td><td className="px-3 py-3">{item.service_name}</td><td className="px-3 py-3 capitalize">{item.status}</td><td className="px-3 py-3 font-mono">{item.reference_code}</td></tr>)}
+            {filtered.map((item) => <tr key={item.reference_code}><td className="px-3 py-3">{item.preferred_date} · {formatAppointmentTime(item.preferred_time)}</td><td className="px-3 py-3 font-semibold">{item.patient_name}</td><td className="px-3 py-3">{item.service_name}</td><td className="px-3 py-3 capitalize">{item.status}</td><td className="px-3 py-3 font-mono">{item.reference_code}</td></tr>)}
             {filtered.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-[#87938c]">No appointment records match these filters.</td></tr>}
           </tbody>
         </table>

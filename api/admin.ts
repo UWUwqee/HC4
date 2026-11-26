@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { formatAppointmentTime, getAppointmentTimePeriod } from '../src/appointmentSchedule.ts';
 import { clinicPublicSettingKeys, ensureSiteContent, getContentDatabase, readSiteContent, validateSiteContent } from './site-content-store.ts';
 import { verifyClerkToken, type ClerkIdentity } from './clerk-auth.ts';
 
@@ -575,7 +576,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
                 AND NOT EXISTS (
                   SELECT 1 FROM appointment_slot_settings
                   WHERE appointment_date = appointment_requests.preferred_date
-                    AND time_slot IN ('all_day', appointment_requests.preferred_time)
+                    AND time_slot IN (
+                      'all_day',
+                      appointment_requests.preferred_time,
+                      CASE
+                        WHEN appointment_requests.preferred_time = 'morning' THEN 'morning'
+                        WHEN appointment_requests.preferred_time IN ('afternoon', 'no preference') THEN 'afternoon'
+                        WHEN CAST(substr(appointment_requests.preferred_time, 1, 2) AS INTEGER) < 12 THEN 'morning'
+                        ELSE 'afternoon'
+                      END
+                    )
                     AND blocked = 1
                 )
                 AND (
@@ -584,18 +594,38 @@ export default async function handler(request: ApiRequest, response: ApiResponse
                   COALESCE((
                     SELECT capacity FROM appointment_slot_settings
                     WHERE appointment_date = appointment_requests.preferred_date
-                      AND time_slot = appointment_requests.preferred_time
+                      AND time_slot = CASE
+                        WHEN appointment_requests.preferred_time = 'morning' THEN 'morning'
+                        WHEN appointment_requests.preferred_time IN ('afternoon', 'no preference') THEN 'afternoon'
+                        WHEN CAST(substr(appointment_requests.preferred_time, 1, 2) AS INTEGER) < 12 THEN 'morning'
+                        ELSE 'afternoon'
+                      END
                   ), 0) = 0
                   OR (
                       SELECT COUNT(*) FROM appointment_requests AS accepted
                     WHERE accepted.status = 'confirmed'
                       AND accepted.preferred_date = appointment_requests.preferred_date
-                      AND accepted.preferred_time = appointment_requests.preferred_time
+                      AND CASE
+                        WHEN accepted.preferred_time = 'morning' THEN 'morning'
+                        WHEN accepted.preferred_time IN ('afternoon', 'no preference') THEN 'afternoon'
+                        WHEN CAST(substr(accepted.preferred_time, 1, 2) AS INTEGER) < 12 THEN 'morning'
+                        ELSE 'afternoon'
+                      END = CASE
+                        WHEN appointment_requests.preferred_time = 'morning' THEN 'morning'
+                        WHEN appointment_requests.preferred_time IN ('afternoon', 'no preference') THEN 'afternoon'
+                        WHEN CAST(substr(appointment_requests.preferred_time, 1, 2) AS INTEGER) < 12 THEN 'morning'
+                        ELSE 'afternoon'
+                      END
                       AND accepted.priority_type != 'priority'
                   ) < (
                     SELECT capacity FROM appointment_slot_settings
                     WHERE appointment_date = appointment_requests.preferred_date
-                      AND time_slot = appointment_requests.preferred_time
+                      AND time_slot = CASE
+                        WHEN appointment_requests.preferred_time = 'morning' THEN 'morning'
+                        WHEN appointment_requests.preferred_time IN ('afternoon', 'no preference') THEN 'afternoon'
+                        WHEN CAST(substr(appointment_requests.preferred_time, 1, 2) AS INTEGER) < 12 THEN 'morning'
+                        ELSE 'afternoon'
+                      END
                   )
                 )`,
           args: [appointmentId || referenceCode],
@@ -619,7 +649,10 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         });
         const allSettings = setting.rows;
         const fullDayBlocked = allSettings.some((item) => item.time_slot === 'all_day' && Number(item.blocked) === 1);
-        const slotSetting = allSettings.find((item) => item.time_slot === row.preferred_time);
+        const preferredTime = String(row.preferred_time);
+        const period = getAppointmentTimePeriod(preferredTime);
+        const slotSetting = allSettings.find((item) => item.time_slot === preferredTime)
+          ?? allSettings.find((item) => item.time_slot === period);
         if (fullDayBlocked || Number(slotSetting?.blocked) === 1) {
           return response.status(409).json({ error: 'This appointment date or time slot is blocked. Unblock it before accepting the request.' });
         }
@@ -645,7 +678,8 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         const appointment = approved.rows[0];
         if (appointment) {
           const now = new Date().toISOString();
-          const message = `Your appointment request for ${String(appointment.service_name)} on ${String(appointment.preferred_date)} (${String(appointment.preferred_time)}) has been accepted.\n\nYou may cancel it from Messages. To request a schedule change, reply in this conversation and clinic staff will assist you.\n\nKumpirmado na ang iyong appointment. Maaari mo itong kanselahin sa Messages. Para humiling ng pagbabago sa iskedyul, mag-reply sa pag-uusap na ito.`;
+          const appointmentTime = formatAppointmentTime(String(appointment.preferred_time));
+          const message = `Your appointment request for ${String(appointment.service_name)} on ${String(appointment.preferred_date)} at ${appointmentTime} has been accepted.\n\nYou may cancel it from Messages. To request a schedule change, reply in this conversation and clinic staff will assist you.\n\nKumpirmado na ang iyong appointment para sa ${String(appointment.service_name)} sa ${String(appointment.preferred_date)}, ${appointmentTime}. Maaari mo itong kanselahin sa Messages. Para humiling ng pagbabago sa iskedyul, mag-reply sa pag-uusap na ito.`;
           await db.batch([
             { sql: "UPDATE appointment_requests SET chat_status = 'open' WHERE id = ? OR reference_code = ?", args: [appointmentId, referenceCode] },
             {

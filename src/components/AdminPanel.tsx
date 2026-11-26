@@ -4,7 +4,7 @@ import { CalendarDays, Check, CheckCircle2, ChevronLeft, Clock3, LockKeyhole, Me
 import { AdminCalendar, SlotSetting, SlotSettingsForm } from './AdminCalendar';
 import { AdminContentManager } from './AdminContentManager';
 import { AdminReports } from './AdminReports';
-import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
+import { getAppointmentTimeMinutes, getAppointmentTimePeriod } from '../appointmentSchedule';
 
 interface AppointmentRow {
   id: string;
@@ -122,7 +122,7 @@ export const AdminPanel: React.FC = () => {
       return matchesStatus && matchesService && matchesRequestType && matchesDate && matchesSearch;
     }).sort((first, second) =>
       first.preferred_date.localeCompare(second.preferred_date)
-      || (APPOINTMENT_TIME_ORDER[first.preferred_time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.preferred_time] ?? 99)
+      || (getAppointmentTimeMinutes(first.preferred_time) ?? 24 * 60) - (getAppointmentTimeMinutes(second.preferred_time) ?? 24 * 60)
       || first.created_at.localeCompare(second.created_at));
   }, [appointments, fromDate, search, serviceFilter, statusFilter, requestTypeFilter, toDate]);
 
@@ -139,12 +139,15 @@ export const AdminPanel: React.FC = () => {
     if (action === 'approve') {
       const dateSettings = slotSettings.filter((setting) => setting.appointment_date === appointment.preferred_date);
       const fullDateBlocked = dateSettings.some((setting) => setting.time_slot === 'all_day' && Number(setting.blocked) === 1);
-      const slotSetting = dateSettings.find((setting) => setting.time_slot === appointment.preferred_time);
-      const slotBlocked = Number(slotSetting?.blocked) === 1;
+      const period = getAppointmentTimePeriod(appointment.preferred_time);
+      const slotSetting = dateSettings.find((setting) => setting.time_slot === period);
+      const slotBlocked = dateSettings.some((setting) => (
+        setting.time_slot === appointment.preferred_time || setting.time_slot === period
+      ) && Number(setting.blocked) === 1);
       const acceptedCount = appointments.filter((item) => item.status === 'confirmed'
         && item.priority_type !== 'priority'
         && item.preferred_date === appointment.preferred_date
-        && item.preferred_time === appointment.preferred_time).length;
+        && getAppointmentTimePeriod(item.preferred_time) === period).length;
       const slotCapacity = Number(slotSetting?.capacity ?? 0);
       if (fullDateBlocked || slotBlocked) {
         setError('This appointment date or time slot is blocked. Unblock it in Calendar & availability before accepting.');

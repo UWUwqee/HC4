@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/react';
 import { HealthCenterProvider, useHealthCenter } from './context/HealthCenterContext';
+import { AccessibilityProvider } from './context/AccessibilityContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { RouteFinder } from './components/RouteFinder';
@@ -37,11 +38,15 @@ const AppContent: React.FC = () => {
     <div className="public-page-shell min-h-screen flex flex-col text-[#374151] antialiased selection:bg-[#eaf3ee] selection:text-[#0f4d3c]">
       <Header />
 
-      {isSignedIn && appointmentRequestAvailability === 'pending' && (
+      {isSignedIn && ['pending', 'confirmed'].includes(appointmentRequestAvailability) && (
         <div role="status" aria-live="polite" className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-950">
-          {language === 'fil'
-            ? 'May appointment request ka pang naghihintay ng pagsusuri ng kawani.'
-            : 'You have an appointment request waiting for clinic staff to review.'}
+          {appointmentRequestAvailability === 'confirmed'
+            ? (language === 'fil'
+              ? 'May aktibo ka pang kumpirmadong appointment. Kumpletuhin o kanselahin muna ito bago mag-request muli.'
+              : 'You have an active confirmed appointment. Complete or cancel it before submitting another request.')
+            : (language === 'fil'
+              ? 'May appointment request ka pang naghihintay ng pagsusuri ng kawani.'
+              : 'You have an appointment request waiting for clinic staff to review.')}
         </div>
       )}
 
@@ -75,6 +80,14 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
+
+const PublicApp: React.FC = () => (
+  <HealthCenterProvider>
+    <AccessibilityProvider>
+      <AppContent />
+    </AccessibilityProvider>
+  </HealthCenterProvider>
+);
 
 export default function App() {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
@@ -136,11 +149,7 @@ export default function App() {
   }
 
   if (!isSignedIn) {
-    return (
-      <HealthCenterProvider>
-        <AppContent />
-      </HealthCenterProvider>
-    );
+    return <PublicApp />;
   }
 
   if (accountRole === 'checking') {
@@ -162,9 +171,5 @@ export default function App() {
 
   if (accountRole === 'admin') return <AdminPanel />;
 
-  return (
-    <HealthCenterProvider>
-      <AppContent />
-    </HealthCenterProvider>
-  );
+  return <PublicApp />;
 }

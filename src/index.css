@@ -83,14 +83,163 @@
     outline: 3px solid rgba(44, 122, 95, 0.45);
     outline-offset: 2px;
   }
-}
 
-html[data-accessibility-mode="high-contrast"] .public-page-shell {
-  filter: contrast(1.25);
-}
+  html {
+    font-size: calc(100% * var(--accessibility-font-scale, 1));
+  }
 
-html[data-accessibility-mode="large-text"] {
-  font-size: 112.5%;
+  html[data-accessibility-contrast="high"] {
+    --color-body: #000000;
+    --color-light-text: #000000;
+    --color-border: #000000;
+    color: #000000;
+    color-scheme: light;
+  }
+
+  html[data-accessibility-contrast="high"] body :where(.public-page-shell *, [data-accessibility-ui] *, [role="dialog"], [role="dialog"] *) {
+    border-color: #000000 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+
+  html[data-accessibility-contrast="high"] body :where(.public-page-shell *, [data-accessibility-ui] *, [role="dialog"], [role="dialog"] *):not(img, svg, path, canvas, video, iframe) {
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell {
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell,
+  html[data-accessibility-contrast="high"] .public-page-shell * {
+    color: #000000 !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell button,
+  html[data-accessibility-contrast="high"] [data-accessibility-ui] button,
+  html[data-accessibility-contrast="high"] [role="dialog"] button {
+    border: 2px solid #000000 !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell [aria-pressed="true"],
+  html[data-accessibility-contrast="high"] [data-accessibility-ui] [aria-pressed="true"] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  html[data-accessibility-contrast="high"] [data-accessibility-ui].fixed.inset-0 {
+    background-color: rgb(0 0 0 / 75%) !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell a {
+    text-decoration: underline !important;
+    text-decoration-thickness: 2px !important;
+    text-underline-offset: 0.18em;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell .footer-enter {
+    border-color: #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  html[data-accessibility-contrast="high"] .public-page-shell .footer-enter * {
+    color: #000000 !important;
+  }
+
+  html[data-accessibility-contrast="high"] :focus-visible {
+    outline: 4px solid #000000;
+    outline-offset: 3px;
+  }
+
+  html[data-accessibility-contrast="smart"] {
+    --color-body: #1f2937;
+    --color-light-text: #374151;
+    --color-border: #64748b;
+    color-scheme: light;
+  }
+
+  html[data-accessibility-contrast="smart"] .site-section-bg {
+    background-color: #ffffff !important;
+    background-image: none !important;
+  }
+
+  html[data-accessibility-contrast="smart"] .site-section-bg :where(p, li, small, .breadcrumb) {
+    color: #303a45 !important;
+  }
+
+  html[data-accessibility-contrast="smart"] .accessibility-dark-details :where(p, li, span) {
+    color: #f0fdf4 !important;
+  }
+
+  html[data-accessibility-contrast="smart"] .site-card,
+  html[data-accessibility-contrast="smart"] .site-section-bg article {
+    border-color: #64748b !important;
+  }
+
+  html[data-accessibility-contrast="smart"] .public-page-shell :where(button, a, input, select, textarea) {
+    border-color: #475569;
+  }
+
+  html[data-accessibility-text-spacing="true"] body :where(p, li, label, dd, dt) {
+    letter-spacing: 0.04em;
+    word-spacing: 0.12em;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-accessibility-dyslexia-font="true"] body,
+  html[data-accessibility-dyslexia-font="true"] body :where(button, input, select, textarea) {
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    letter-spacing: 0.025em;
+  }
+
+  html[data-accessibility-large-cursor="true"] body,
+  html[data-accessibility-large-cursor="true"] body :where(button, a, input, select, textarea, [role="button"]) {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M5 3v27l8-8 6 13 5-2-6-12h11z' fill='white' stroke='black' stroke-width='2'/%3E%3C/svg%3E") 5 3, auto;
+  }
+
+  html[data-accessibility-touch-targets="true"] body :where(button, a, input, select, textarea, [role="button"]) {
+    min-height: 48px;
+  }
+
+  html[data-accessibility-highlight-links="true"] body :where(a, button, [role="button"], input, select, textarea) {
+    outline: 2px solid #9a5b00;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #ffffff;
+  }
+
+  html[data-accessibility-highlight-links="true"] body a {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.18em;
+  }
+
+  html[data-accessibility-reduce-motion="true"] *,
+  html[data-accessibility-reduce-motion="true"] *::before,
+  html[data-accessibility-reduce-motion="true"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  @media (prefers-contrast: more), (forced-colors: active) {
+    html[data-accessibility-contrast="smart"] :focus-visible {
+      outline: 3px solid CanvasText;
+    }
+
+    html[data-accessibility-contrast="smart"] button,
+    html[data-accessibility-contrast="smart"] a,
+    html[data-accessibility-contrast="smart"] input,
+    html[data-accessibility-contrast="smart"] select,
+    html[data-accessibility-contrast="smart"] textarea {
+      border-color: CanvasText;
+    }
+  }
 }
 
 .public-page-shell {

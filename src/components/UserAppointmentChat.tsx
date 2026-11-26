@@ -1,7 +1,8 @@
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useRef, useState } from 'react';
 import { useAuth, useUser } from '@clerk/react';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { CalendarClock, MessageCircle, Send, X } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { formatAppointmentTime } from '../appointmentSchedule';
 
 interface ChatAppointment {
   id: string;
@@ -53,6 +54,7 @@ export const UserAppointmentChat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const lastStatuses = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (!messagesOpen) return;
@@ -65,6 +67,18 @@ export const UserAppointmentChat: React.FC = () => {
         if (!response.ok) throw new Error('Messages could not be loaded.');
         const data = await response.json() as ChatResponse;
         if (!active) return;
+        const nextStatuses: Record<string, string> = {};
+        data.appointments.forEach((appointment) => {
+          const status = appointment.status.toLowerCase();
+          const previousStatus = lastStatuses.current[appointment.id];
+          if (previousStatus && previousStatus !== status) {
+            window.dispatchEvent(new CustomEvent('appointment-status-change', {
+              detail: { status, referenceCode: appointment.reference_code },
+            }));
+          }
+          nextStatuses[appointment.id] = status;
+        });
+        lastStatuses.current = nextStatuses;
         setAppointments(data.appointments);
         setMessages(data.messages);
         setSelectedAppointmentId((current) => (
@@ -91,6 +105,29 @@ export const UserAppointmentChat: React.FC = () => {
   const selectedAppointment = appointments.find((appointment) => appointment.id === selectedAppointmentId);
   const selectedMessages = messages.filter((message) => message.appointment_id === selectedAppointmentId);
   const latestAdminMessage = [...selectedMessages].reverse().find((message) => message.sender_role === 'admin');
+
+  const cancelSelectedAppointment = async () => {
+    if (!selectedAppointment || !['pending', 'confirmed'].includes(selectedAppointment.status.toLowerCase())) return;
+    if (!window.confirm(isFilipino ? 'Kanselahin ang appointment na ito?' : 'Cancel this appointment?')) return;
+    setError('');
+    try {
+      const response = await chatRequest(getToken, {
+        action: 'patient_cancel',
+        appointmentId: selectedAppointment.id,
+      });
+      if (!response.ok) {
+        const result = await response.json() as { error?: string };
+        throw new Error(result.error || 'Appointment could not be cancelled.');
+      }
+      const refresh = await chatRequest(getToken);
+      if (!refresh.ok) throw new Error('Appointment was cancelled, but the conversation could not be refreshed.');
+      const data = await refresh.json() as ChatResponse;
+      setAppointments(data.appointments);
+      setMessages(data.messages);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Appointment could not be cancelled.');
+    }
+  };
 
   useEffect(() => {
     if (!messagesOpen || !selectedAppointmentId || !latestAdminMessage) return;
@@ -148,7 +185,7 @@ export const UserAppointmentChat: React.FC = () => {
             <select aria-label={isFilipino ? 'Piliin ang appointment' : 'Select appointment'} value={selectedAppointmentId} onChange={(event) => setSelectedAppointmentId(event.target.value)} className="min-h-11 w-full border border-slate-300 bg-white px-3 text-sm text-slate-800">
               {appointments.map((appointment) => (
                 <option key={appointment.id} value={appointment.id}>
-                  {appointment.reference_code} · {appointment.service_name} · {appointment.preferred_date}
+                  {appointment.reference_code} · {appointment.service_name} · {appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}
                 </option>
               ))}
             </select>
@@ -156,6 +193,15 @@ export const UserAppointmentChat: React.FC = () => {
             <p className="text-sm text-slate-600">{isFilipino ? 'Wala pang appointment conversation.' : 'No appointment conversations yet.'}</p>
           )}
         </div>
+
+        {selectedAppointment && ['pending', 'confirmed'].includes(selectedAppointment.status.toLowerCase()) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e7eee9] bg-white px-4 py-3 sm:px-6">
+            <p className="text-xs text-slate-600">{isFilipino ? 'Kanselahin kung hindi ka makakadalo sa schedule na ito.' : 'Cancel if you can no longer attend this appointment.'}</p>
+            <button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-11 border border-rose-200 px-3 text-xs font-bold text-rose-700 hover:bg-rose-50">
+              <CalendarClock className="mr-1 inline h-4 w-4" aria-hidden="true" />{isFilipino ? 'Kanselahin ang appointment' : 'Cancel appointment'}
+            </button>
+          </div>
+        )}
 
         <div className="min-h-48 flex-1 space-y-3 overflow-y-auto bg-[#f7faf8] px-4 py-4 sm:px-6" aria-live="polite">
           {loading && messages.length === 0 && <p role="status" className="text-sm text-slate-500">{isFilipino ? 'Naglo-load ng mga mensahe...' : 'Loading messages...'}</p>}
