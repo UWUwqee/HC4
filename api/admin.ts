@@ -310,19 +310,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return response.status(200).json({ appointmentId, status: 'cancelled' });
     }
 
-    if (action === 'set_clinic_status') {
-      if (!admin) return response.status(403).json({ error: 'Admin permission is required.' });
-      if (typeof body.isOpen !== 'boolean') return response.status(400).json({ error: 'A valid clinic status is required.' });
-      const updatedAt = new Date().toISOString();
-      await db.execute({
-        sql: `INSERT INTO clinic_settings (setting_key, setting_value, updated_at)
-              VALUES ('clinic_open', ?, ?)
-              ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = excluded.updated_at`,
-        args: [body.isOpen ? '1' : '0', updatedAt],
-      });
-      return response.status(200).json({ clinicOpen: body.isOpen, updatedAt });
-    }
-
     if (action === 'upload_announcement_image') {
       if (!admin) return response.status(403).json({ error: 'Admin permission is required.' });
       const contentId = text(body.contentId, 80);

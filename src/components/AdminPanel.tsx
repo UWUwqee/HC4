@@ -73,8 +73,6 @@ export const AdminPanel: React.FC = () => {
   const [search, setSearch] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [clinicOpen, setClinicOpen] = useState<boolean | null>(null);
-  const [clinicStatusSaving, setClinicStatusSaving] = useState(false);
   const [error, setError] = useState('');
 
   const loadWorkspace = async () => {
@@ -89,17 +87,6 @@ export const AdminPanel: React.FC = () => {
         second.created_at.localeCompare(first.created_at) || second.id.localeCompare(first.id)));
       setMessages(data.messages);
       setSlotSettings(data.slotSettings ?? []);
-      const statusToken = await getToken();
-      if (!statusToken) throw new Error('Sign in as an administrator to open this workspace.');
-      const statusResponse = await fetch('/api/admin?mode=clinic_status', {
-        headers: { Authorization: `Bearer ${statusToken}` },
-        cache: 'no-store',
-      });
-      const statusData = await statusResponse.json() as { clinicOpen?: boolean; error?: string };
-      if (!statusResponse.ok || typeof statusData.clinicOpen !== 'boolean') {
-        throw new Error(statusData.error || 'Clinic status could not be loaded.');
-      }
-      setClinicOpen(statusData.clinicOpen);
       setError('');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Admin workspace could not be loaded.');
@@ -216,29 +203,6 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const updateClinicStatus = async (isOpen: boolean) => {
-    setClinicStatusSaving(true);
-    try {
-      const token = await getToken();
-      if (!token) throw new Error('Sign in to update clinic status.');
-      const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'set_clinic_status', isOpen }),
-      });
-      const result = await response.json() as { clinicOpen?: boolean; error?: string };
-      if (!response.ok || typeof result.clinicOpen !== 'boolean') {
-        throw new Error(result.error || 'Clinic status could not be updated.');
-      }
-      setClinicOpen(result.clinicOpen);
-      setError('');
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Clinic status could not be updated.');
-    } finally {
-      setClinicStatusSaving(false);
-    }
-  };
-
   const saveSlotSettings = async (date: string, settings: SlotSettingsForm) => {
     const token = await getToken();
     if (!token) throw new Error('Sign in to manage appointment availability.');
@@ -294,13 +258,6 @@ export const AdminPanel: React.FC = () => {
           <div>
             <p className="text-sm font-medium text-[#52635b]">Manage appointment requests and patient follow-up.</p>
             <p className="mt-1 text-xs text-[#7b8982]">Review requests, update availability, and keep clinic information current.</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 text-[11px] text-[#66736f]">
-            <span className={`h-2 w-2 rounded-full ${clinicOpen === null ? 'bg-slate-400' : clinicOpen ? 'bg-emerald-600' : 'bg-rose-600'}`} />
-            <span>{clinicOpen === null ? 'Checking clinic status' : clinicOpen ? 'Clinic is open' : 'Clinic is closed'}</span>
-            <button type="button" disabled={clinicStatusSaving || clinicOpen === null} onClick={() => void updateClinicStatus(!clinicOpen)} className="min-h-9 border border-[#d9e1dc] bg-white px-3 text-[10px] font-bold text-[#17645c] hover:bg-[#f2f7f4] disabled:opacity-60">
-              {clinicStatusSaving ? 'Saving...' : clinicOpen ? 'Close clinic' : 'Open clinic'}
-            </button>
           </div>
         </div>
 
