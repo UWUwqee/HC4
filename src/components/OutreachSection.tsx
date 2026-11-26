@@ -8,20 +8,19 @@ export const OutreachSection: React.FC = () => {
     language,
     openBookingForProgram,
     setBookingModalOpen,
-    clinicOpen,
     appointmentRequestAvailability,
     appointments,
     cancelAppointment,
     siteContent
   } = useHealthCenter();
-  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
+  const bookingEnabled = appointmentRequestAvailability === 'available';
   const bookingLabel = appointmentRequestAvailability === 'pending'
     ? 'Appointment under review'
     : appointmentRequestAvailability === 'checking'
       ? 'Checking request status'
       : appointmentRequestAvailability === 'error'
         ? 'Unable to check request'
-        : clinicOpen === true ? 'REQUEST AN APPOINTMENT' : clinicOpen === false ? 'CLOSED' : 'Checking availability';
+        : 'REQUEST AN APPOINTMENT';
 
   return (
     <section id="outreach" className="border-b border-slate-200 bg-white py-16">

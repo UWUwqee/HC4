@@ -54,7 +54,6 @@ export const OutreachBookingModal: React.FC = () => {
     language,
     bookingModalOpen,
     setBookingModalOpen,
-    clinicOpen,
     markAppointmentRequestStatus,
     selectedProgramForBooking,
     siteContent,
@@ -230,7 +229,6 @@ export const OutreachBookingModal: React.FC = () => {
 
   if (!bookingModalOpen) return null;
 
-  const canSubmitAppointment = clinicOpen === true;
   const handleClose = () => setBookingModalOpen(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -243,10 +241,6 @@ export const OutreachBookingModal: React.FC = () => {
     if (pendingRequest) return;
     if (!selectedService) {
       setError(isFilipino ? 'Walang available na serbisyo para sa appointment request.' : 'No services are currently available for appointment requests.');
-      return;
-    }
-    if (!canSubmitAppointment) {
-      setError(isFilipino ? 'Sarado muna ang pagtanggap ng appointment request.' : 'The clinic is not currently accepting appointment requests.');
       return;
     }
     if (phone.replace(/\D/g, '').length < 7) {
@@ -394,13 +388,6 @@ export const OutreachBookingModal: React.FC = () => {
           </p>
         ) : (
           <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-5 px-4 py-5 sm:px-7 sm:py-6">
-            {!canSubmitAppointment && (
-              <p role="status" className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-                {clinicOpen === false
-                  ? (isFilipino ? 'Sarado ngayon ang pagtanggap ng appointment request. Subukan muli kapag bukas na.' : 'The clinic is currently closed to appointment requests. Please try again when it is open.')
-                  : (isFilipino ? 'Tinitingnan ang availability ng appointment...' : 'Checking appointment availability...')}
-              </p>
-            )}
             <div aria-label={isFilipino ? 'Hakbang sa appointment' : 'Appointment request steps'} className="space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600">
                 <span>{isFilipino ? `Hakbang ${formStep} ng 2` : `Step ${formStep} of 2`}</span>
@@ -536,9 +523,9 @@ export const OutreachBookingModal: React.FC = () => {
                 {formStep === 2 && <button type="button" onClick={() => { setError(''); setFormStep(1); }} className="min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto">{isFilipino ? 'Bumalik' : 'Back'}</button>}
                 <button type="button" onClick={handleClose} className="min-h-11 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto">{isFilipino ? 'Kanselahin' : 'Cancel'}</button>
                 {formStep === 1 ? (
-                  <button type="submit" disabled={!canSubmitAppointment || !selectedService} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{isFilipino ? 'Magpatuloy sa iskedyul' : 'Continue to schedule'}</button>
+                  <button type="submit" disabled={!selectedService} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{isFilipino ? 'Magpatuloy sa iskedyul' : 'Continue to schedule'}</button>
                 ) : (
-                  <button type="submit" disabled={submitting || slotUnavailable || !canSubmitAppointment || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="w-4 h-4 shrink-0" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
+                  <button type="submit" disabled={submitting || slotUnavailable || !selectedService || !privacyConsent || !attendanceConsent} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-teal-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-teal-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"><CalendarDays className="w-4 h-4 shrink-0" />{submitting ? (isFilipino ? 'Ipinapadala...' : 'Sending...') : (isFilipino ? 'Ipadala ang request' : 'Send appointment request')}</button>
                 )}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Bike, CarFront, ChevronDown, ChevronUp, ExternalLink, LocateFixed, MapPin, PersonStanding, RefreshCw } from 'lucide-react';
+import { Bike, CarFront, ChevronDown, ChevronUp, ExternalLink, LocateFixed, MapPin, Motorbike, PersonStanding, RefreshCw } from 'lucide-react';
 import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
 import { useHealthCenter } from '../context/HealthCenterContext';
 
@@ -32,7 +32,7 @@ const modes: Array<{ id: TravelMode; label: string; icon: React.ReactNode }> = [
   { id: 'walking', label: 'Walk', icon: <PersonStanding className="h-4 w-4" /> },
   { id: 'bicycling', label: 'Bike', icon: <Bike className="h-4 w-4" /> },
   { id: 'driving', label: 'Car', icon: <CarFront className="h-4 w-4" /> },
-  { id: 'motorcycle', label: 'Moto', icon: <CarFront className="h-4 w-4" /> },
+  { id: 'motorcycle', label: 'Moto', icon: <Motorbike className="h-4 w-4" /> },
 ];
 
 function formatDistance(meters: number) {
@@ -273,8 +273,8 @@ export const RouteFinder: React.FC = () => {
 
   return (
     <section aria-label={isFilipino ? 'Mapa ng direksyon' : 'Navigation map'} className="border-b border-[#dce7e1] bg-[#f7faf8] py-3 sm:py-4">
-      <div className="mx-auto flex max-w-7xl justify-end px-5 sm:px-8 lg:px-12">
-        <aside aria-label={isFilipino ? 'Live na mapa ng direksyon' : 'Live directions map'} className="route-enter w-full max-w-[360px] overflow-hidden rounded-sm border border-[#d7dfda] bg-[#fcfdfb] shadow-[0_10px_32px_rgba(23,58,55,0.12)]">
+      <div className="mx-auto flex w-full max-w-none justify-center px-4 sm:px-6 lg:px-8">
+        <aside aria-label={isFilipino ? 'Live na mapa ng direksyon' : 'Live directions map'} className="route-enter max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full overflow-y-auto rounded-sm border border-[#d7dfda] bg-[#fcfdfb] shadow-[0_10px_32px_rgba(23,58,55,0.12)]">
           <header className="flex items-center justify-between gap-2 bg-[#173a37] px-3 py-2.5 text-white">
             <div className="min-w-0">
               <h2 className="truncate text-sm font-bold">{isFilipino ? 'Mag-navigate sa health center' : 'Navigate to health center'}</h2>
@@ -292,7 +292,7 @@ export const RouteFinder: React.FC = () => {
               {modes.map((mode) => <button key={mode.id} type="button" onClick={() => selectTravelMode(mode.id)} aria-pressed={travelMode === mode.id} className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 border-r border-[#dfe6e1] py-2 text-[11px] font-bold last:border-r-0 sm:flex-row ${travelMode === mode.id ? 'bg-[#dce9e2] text-[#173a37]' : 'text-slate-600 hover:bg-[#f4f7f4]'}`}>{mode.icon}<span>{isFilipino && mode.id === 'walking' ? 'Lakad' : isFilipino && mode.id === 'bicycling' ? 'Bisikleta' : isFilipino && mode.id === 'driving' ? 'Sasakyan' : mode.label}</span></button>)}
             </div>
             <div className="relative">
-              <div ref={mapElementRef} className="h-[170px] w-full bg-slate-100" aria-label={isFilipino ? 'Mapa na nagpapakita ng iyong lokasyon, health center, at ruta' : 'Map showing your location, the health center, and route'} />
+              <div ref={mapElementRef} className="h-[240px] w-full bg-slate-100 sm:h-[340px] lg:h-[400px]" aria-label={isFilipino ? 'Mapa na nagpapakita ng iyong lokasyon, health center, at ruta' : 'Map showing your location, the health center, and route'} />
               {pinStartMode && <div className="absolute left-2 right-2 top-2 z-[1000] flex items-center justify-between gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-lg"><span>{isFilipino ? 'I-tap ang iyong lokasyon sa mapa' : 'Tap your start location on the map'}</span><button type="button" onClick={() => setPinStartMode(false)} className="text-teal-900 underline">{isFilipino ? 'Kanselahin' : 'Cancel'}</button></div>}
             </div>
             <div className="space-y-1.5 px-3 py-2.5">

@@ -4,15 +4,15 @@ import { Clock, MapPin, CalendarDays } from 'lucide-react';
 import { CLINIC_ADDRESS, COVERAGE_AREAS, DENTAL_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 
 export const ContactSection: React.FC = () => {
-  const { t, language, setBookingModalOpen, clinicOpen, appointmentRequestAvailability } = useHealthCenter();
-  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
+  const { t, language, setBookingModalOpen, appointmentRequestAvailability } = useHealthCenter();
+  const bookingEnabled = appointmentRequestAvailability === 'available';
   const bookingLabel = appointmentRequestAvailability === 'pending'
     ? 'Appointment under review'
     : appointmentRequestAvailability === 'checking'
       ? 'Checking request status'
       : appointmentRequestAvailability === 'error'
         ? 'Unable to check request'
-        : clinicOpen === true ? 'REQUEST AN APPOINTMENT' : clinicOpen === false ? 'CLOSED' : 'Checking availability';
+        : 'REQUEST AN APPOINTMENT';
 
   return (
     <section id="contact" className="py-16 sm:py-20 bg-[#f3f7f4] border-t border-slate-200">

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SignIn, SignUp } from '@clerk/react';
+import { X } from 'lucide-react';
 import delfinLogo from '../assets/images/DELFIN.png';
 
 const authAppearance = {
@@ -76,39 +77,61 @@ const authAppearance = {
   },
 };
 
-export const AuthScreen: React.FC = () => {
+export const AuthScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isRegistering, setIsRegistering] = useState(false);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#eef2ee] px-3 py-4 text-[#17312e] sm:px-4 sm:py-12">
-      <section className="mx-auto w-full min-w-0 max-w-[400px] border border-[#d9e1dc] bg-[#fbfcfa]">
-        <div className="border-b border-[#dfe6e1] px-5 py-3">
-          <div className="flex items-center gap-3">
-            <img src={delfinLogo} alt="Delfin Salonga Health Center" className="h-9 w-9 shrink-0 rounded-full border border-[#dce7e1] object-cover" />
-            <div>
-              <div className="text-xs font-bold text-[#17312e]">Delfin Salonga Health Center</div>
-              <div className="mt-0.5 text-[10px] text-[#66736f]">Health Center · Pateros</div>
+    <div
+      className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/60 px-3 py-4 text-[#17312e] sm:px-4 sm:py-8"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      data-auth-dialog
+    >
+      <div className="flex min-h-full items-center justify-center">
+        <section role="dialog" aria-modal="true" aria-label={isRegistering ? 'Create an account' : 'Log in'} className="relative mx-auto w-full min-w-0 max-w-[400px] border border-[#d9e1dc] bg-[#fbfcfa] shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
+          <button type="button" onClick={onClose} aria-label="Close sign-in dialog" className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full text-[#4b5563] hover:bg-[#f1f5f2] hover:text-[#17312e]">
+            <X className="h-5 w-5" />
+          </button>
+          <div className="border-b border-[#dfe6e1] px-5 py-3">
+            <div className="flex items-center gap-3">
+              <img src={delfinLogo} alt="Delfin Salonga Health Center" className="h-9 w-9 shrink-0 rounded-full border border-[#dce7e1] object-cover" />
+              <div>
+                <div className="text-xs font-bold text-[#17312e]">Delfin Salonga Health Center</div>
+                <div className="mt-0.5 text-[10px] text-[#66736f]">Health Center · Pateros</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex w-full min-w-0 justify-center px-4 py-5 sm:px-5">
-          {isRegistering ? (
-            <SignUp routing="hash" signInUrl="#" appearance={authAppearance} />
-          ) : (
-            <SignIn routing="hash" signUpUrl="#" appearance={authAppearance} />
-          )}
-        </div>
-        <div className="mx-5 border-t border-[#dfe6e1] py-3 text-center text-xs text-[#66736f]">
-          {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
-          <button
-            type="button"
-            onClick={() => setIsRegistering((registering) => !registering)}
-            className="font-semibold text-[#0f4d3c] hover:text-[#17645c]"
-          >
-            {isRegistering ? 'Sign in' : 'Sign up'}
-          </button>
-        </div>
-      </section>
-    </main>
+          <div className="flex w-full min-w-0 justify-center px-4 py-5 sm:px-5">
+            {isRegistering ? (
+              <SignUp routing="hash" signInUrl="#" appearance={authAppearance} />
+            ) : (
+              <SignIn routing="hash" signUpUrl="#" appearance={authAppearance} />
+            )}
+          </div>
+          <div className="mx-5 border-t border-[#dfe6e1] py-3 text-center text-xs text-[#66736f]">
+            {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
+            <button
+              type="button"
+              onClick={() => setIsRegistering((registering) => !registering)}
+              className="font-semibold text-[#0f4d3c] hover:text-[#17645c]"
+            >
+              {isRegistering ? 'Sign in' : 'Sign up'}
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 };

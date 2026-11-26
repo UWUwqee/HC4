@@ -115,6 +115,9 @@ interface HealthCenterContextValue {
   clinicOpen: boolean | null;
   clinicStatusError: string;
   appointmentRequestAvailability: AppointmentRequestAvailability;
+  authModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
+  isSignedIn: boolean;
   bookingModalOpen: boolean;
   setBookingModalOpen: (open: boolean) => void;
   selectedProgramForBooking: string;
@@ -164,7 +167,10 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [siteContentError, setSiteContentError] = useState('');
   const [clinicOpen, setClinicOpen] = useState<boolean | null>(null);
   const [clinicStatusError, setClinicStatusError] = useState('');
-  const [appointmentRequestAvailability, setAppointmentRequestAvailability] = useState<AppointmentRequestAvailability>('checking');
+  const [appointmentRequestAvailability, setAppointmentRequestAvailability] = useState<AppointmentRequestAvailability>(
+    isSignedIn ? 'checking' : 'available',
+  );
+  const [authModalOpen, setAuthModalOpenState] = useState(false);
   const [bookingModalOpenState, setBookingModalOpenState] = useState(false);
   const [selectedProgramForBooking, setSelectedProgramForBooking] = useState('');
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
@@ -180,14 +186,40 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
   const toggleLanguage = () => setLanguage(language === 'en' ? 'fil' : 'en');
 
-  const setBookingModalOpen = (open: boolean) => {
-    setBookingModalOpenState(open);
-    if (!open) setSelectedProgramForBooking('');
-  };
-  const openBookingForProgram = (programId: string) => {
-    setSelectedProgramForBooking(programId);
+  const setAuthModalOpen = useCallback((open: boolean) => {
+    if (!open) {
+      sessionStorage.removeItem('mfhc_booking_after_signin');
+      sessionStorage.removeItem('mfhc_booking_program');
+      setSelectedProgramForBooking('');
+    }
+    setAuthModalOpenState(open);
+  }, []);
+  const setBookingModalOpen = useCallback((open: boolean) => {
+    if (!open) {
+      setBookingModalOpenState(false);
+      setSelectedProgramForBooking('');
+      return;
+    }
+    if (appointmentRequestAvailability !== 'available') return;
+    if (!isSignedIn) {
+      sessionStorage.setItem('mfhc_booking_after_signin', 'true');
+      if (selectedProgramForBooking) sessionStorage.setItem('mfhc_booking_program', selectedProgramForBooking);
+      setAuthModalOpenState(true);
+      return;
+    }
     setBookingModalOpenState(true);
-  };
+  }, [appointmentRequestAvailability, isSignedIn, selectedProgramForBooking]);
+  const openBookingForProgram = useCallback((programId: string) => {
+    if (appointmentRequestAvailability !== 'available') return;
+    setSelectedProgramForBooking(programId);
+    if (!isSignedIn) {
+      sessionStorage.setItem('mfhc_booking_after_signin', 'true');
+      sessionStorage.setItem('mfhc_booking_program', programId);
+      setAuthModalOpenState(true);
+      return;
+    }
+    setBookingModalOpenState(true);
+  }, [appointmentRequestAvailability, isSignedIn]);
   const markAppointmentRequestStatus = useCallback((status: 'pending' | 'confirmed') => {
     setAppointmentRequestAvailability(status);
   }, []);
@@ -250,7 +282,7 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     const loadAppointments = async () => {
       if (!isSignedIn) {
         setAppointments([]);
-        setAppointmentRequestAvailability('error');
+        setAppointmentRequestAvailability('available');
         return;
       }
       try {
@@ -267,6 +299,15 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
           : nextAppointments.some((appointment) => appointment.status === 'Confirmed')
             ? 'confirmed'
             : 'available');
+        if (sessionStorage.getItem('mfhc_booking_after_signin') === 'true') {
+          sessionStorage.removeItem('mfhc_booking_after_signin');
+          const programId = sessionStorage.getItem('mfhc_booking_program') ?? '';
+          sessionStorage.removeItem('mfhc_booking_program');
+          if (programId) setSelectedProgramForBooking(programId);
+          if (!nextAppointments.some((appointment) => ['Pending', 'Confirmed'].includes(appointment.status))) {
+            setBookingModalOpenState(true);
+          }
+        }
       } catch {
         if (active) setAppointmentRequestAvailability((current) => current === 'pending' || current === 'confirmed' ? current : 'error');
       }
@@ -343,6 +384,9 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
       clinicOpen,
       clinicStatusError,
       appointmentRequestAvailability,
+      authModalOpen,
+      setAuthModalOpen,
+      isSignedIn: Boolean(isSignedIn),
       bookingModalOpen: bookingModalOpenState,
       setBookingModalOpen,
       selectedProgramForBooking,

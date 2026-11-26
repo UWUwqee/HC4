@@ -322,10 +322,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     };
     const priorityReason = priorityCategories.map((category) => priorityLabels[category]).join(', ');
     const priorityType = priorityCategories.length > 0 ? 'priority' : 'regular';
-    const clinicStatus = await db.execute("SELECT setting_value FROM clinic_settings WHERE setting_key = 'clinic_open'");
-    if (clinicStatus.rows[0]?.setting_value !== '1') {
-      return response.status(409).json({ error: 'Appointment requests are currently closed by the health center.' });
-    }
     const transaction = await db.transaction('write');
     try {
       const activeAppointment = await transaction.execute({

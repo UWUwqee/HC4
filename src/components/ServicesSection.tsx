@@ -36,8 +36,7 @@ const illustrationForService = (category: string) => {
 };
 
 export const ServicesSection: React.FC = () => {
-  const { t, language, openBookingForProgram, clinicOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
-  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
+  const { t, language, siteContent } = useHealthCenter();
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const selectedService = siteContent.services.find((service) => service.id === selectedServiceId) ?? null;
 
@@ -188,15 +187,6 @@ export const ServicesSection: React.FC = () => {
               </div>
             </div>
 
-            {bookingEnabled && (
-              <button
-                type="button"
-                onClick={() => openBookingForProgram(selectedService.id)}
-                className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-[#17645c] px-4 py-3 text-sm font-bold text-white hover:bg-[#104f49] sm:mt-6 sm:w-auto"
-              >
-                {language === 'fil' ? 'Humiling ng appointment' : 'REQUEST AN APPOINTMENT'}
-              </button>
-            )}
           </section>
         </div>,
         document.body,

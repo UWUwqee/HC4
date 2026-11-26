@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/react';
 import { HealthCenterProvider, useHealthCenter } from './context/HealthCenterContext';
 import { AccessibilityProvider } from './context/AccessibilityContext';
@@ -14,10 +14,20 @@ import { CheckCircle2 } from 'lucide-react';
 import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
 import { PatientFlow } from './components/PatientFlow';
+import { AuthScreen } from './components/AuthScreen';
 
 const AppContent: React.FC = () => {
   const { isSignedIn } = useAuth();
-  const { activeSection, notificationToast, setNotificationToast, appointmentRequestAvailability, language } = useHealthCenter();
+  const {
+    activeSection,
+    notificationToast,
+    setNotificationToast,
+    appointmentRequestAvailability,
+    language,
+    authModalOpen,
+    setAuthModalOpen,
+  } = useHealthCenter();
+  const closeAuthModal = useCallback(() => setAuthModalOpen(false), [setAuthModalOpen]);
 
   useEffect(() => {
     const handleStatusChange = (event: Event) => {
@@ -36,6 +46,9 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="public-page-shell min-h-screen flex flex-col text-[#374151] antialiased selection:bg-[#eaf3ee] selection:text-[#0f4d3c]">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-white focus:px-4 focus:py-3 focus:font-semibold focus:text-[#0f4d3c]">
+        Skip to content
+      </a>
       <Header />
 
       {isSignedIn && ['pending', 'confirmed'].includes(appointmentRequestAvailability) && (
@@ -50,7 +63,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      <main key={activeSection} className="public-view-enter flex-1">
+      <main id="main-content" key={activeSection} className="public-view-enter flex-1">
         {activeSection === 'information' ? (
           <PublicInformation />
         ) : activeSection === 'schedule' ? (
@@ -70,6 +83,7 @@ const AppContent: React.FC = () => {
 
       {isSignedIn && <UserAppointmentChat />}
       <OutreachBookingModal />
+      {authModalOpen && <AuthScreen onClose={closeAuthModal} />}
 
       {notificationToast && (
         <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 flex max-w-sm items-center gap-2 rounded-md border border-white/10 bg-[#0f4d3c] px-4 py-3 text-sm font-semibold text-white shadow-lg animate-fade-in sm:bottom-5 sm:left-auto sm:right-5">

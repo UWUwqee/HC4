@@ -5,10 +5,10 @@ import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
 import centerPhoto from '../assets/images/DELFIN.png';
 
 export const Hero: React.FC = () => {
-  const { language, setActiveSection, setBookingModalOpen, clinicOpen, clinicStatusError, appointmentRequestAvailability, siteContent } = useHealthCenter();
+  const { language, setActiveSection, setBookingModalOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
   const clinicAddress = language === 'fil' ? siteContent.settings.clinicAddressFil : siteContent.settings.clinicAddress;
   const clinicHours = language === 'fil' ? siteContent.settings.clinicHoursFil : siteContent.settings.clinicHours;
-  const bookingEnabled = clinicOpen === true && appointmentRequestAvailability === 'available';
+  const bookingEnabled = appointmentRequestAvailability === 'available';
 
   const handleScrollTo = (id: string) => {
     setActiveSection(id);
@@ -39,13 +39,9 @@ export const Hero: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className={`flex min-h-12 min-w-44 items-center justify-center gap-3 rounded-md border px-4 py-2 text-sm font-extrabold shadow-lg sm:min-h-14 sm:min-w-52 sm:px-5 sm:text-base ${clinicStatusError || clinicOpen === null ? 'border-slate-200/50 bg-slate-950/45' : clinicOpen ? 'border-emerald-200/50 bg-emerald-950/50' : 'border-rose-200/60 bg-rose-950/55'}`} role="status" aria-live="polite">
-              <span className={`h-4 w-4 shrink-0 rounded-full ring-4 ${clinicStatusError || clinicOpen === null ? 'bg-slate-400 ring-slate-300/20' : clinicOpen ? 'bg-emerald-400 ring-emerald-300/20' : 'bg-rose-400 ring-rose-300/20'}`} />
-              {clinicStatusError || clinicOpen === null
-                ? (language === 'fil' ? 'Hindi available ang status' : 'Status unavailable')
-                : clinicOpen
-                  ? (language === 'fil' ? 'BUKAS NGAYON' : 'OPEN NOW')
-                  : (language === 'fil' ? 'SARADO NGAYON' : 'CLOSED NOW')}
+            <div className="flex min-h-12 min-w-44 items-center justify-center gap-3 rounded-md border border-emerald-200/50 bg-emerald-950/50 px-4 py-2 text-sm font-extrabold shadow-lg sm:min-h-14 sm:min-w-52 sm:px-5 sm:text-base" role="status">
+              <CalendarDays className="h-5 w-5 shrink-0 text-emerald-200" aria-hidden="true" />
+              {language === 'fil' ? 'TUMATANGGAP NG REQUEST 24/7' : 'APPOINTMENT REQUESTS 24/7'}
             </div>
           </div>
         </div>
