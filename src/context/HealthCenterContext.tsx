@@ -5,6 +5,7 @@ import { DEFAULT_CLINIC_PUBLIC_SETTINGS, SERVICES_DATA } from '../data/healthCen
 import type { ClinicPublicSettings, PublicSiteContent } from '../types';
 
 export type Language = 'en' | 'fil';
+export type AccessibilityMode = 'standard' | 'high-contrast' | 'large-text';
 export type AppointmentRequestAvailability = 'checking' | 'available' | 'pending' | 'error';
 
 export interface PatientAppointment {
@@ -107,6 +108,8 @@ interface HealthCenterContextValue {
   t: (typeof TRANSLATIONS)['en'];
   language: Language;
   toggleLanguage: () => void;
+  accessibilityMode: AccessibilityMode;
+  setAccessibilityMode: (mode: AccessibilityMode) => void;
   activeSection: string;
   setActiveSection: (section: string) => void;
   siteContent: PublicSiteContent;
@@ -154,10 +157,14 @@ function appointmentFromApi(row: AppointmentApiRow): PatientAppointment {
 }
 
 export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [language, setLanguage] = useState<Language>(() => (
     localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
   ));
+  const [accessibilityMode, setAccessibilityMode] = useState<AccessibilityMode>(() => {
+    const storedMode = localStorage.getItem('delfin-salonga-accessibility');
+    return storedMode === 'high-contrast' || storedMode === 'large-text' ? storedMode : 'standard';
+  });
   const [activeSection, setActiveSectionState] = useState('home');
   const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT);
   const [siteContentError, setSiteContentError] = useState('');
@@ -178,6 +185,14 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     localStorage.setItem('delfin-salonga-language', next);
     return next;
   });
+
+  useEffect(() => {
+    document.documentElement.dataset.accessibilityMode = accessibilityMode;
+    localStorage.setItem('delfin-salonga-accessibility', accessibilityMode);
+    return () => {
+      delete document.documentElement.dataset.accessibilityMode;
+    };
+  }, [accessibilityMode]);
   const setBookingModalOpen = (open: boolean) => {
     setBookingModalOpenState(open);
     if (!open) setSelectedProgramForBooking('');
@@ -227,7 +242,9 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const loadClinicStatus = async () => {
       try {
-        const response = await requestWithToken('/api/admin?mode=clinic_status');
+        const response = isSignedIn
+          ? await requestWithToken('/api/admin?mode=clinic_status')
+          : await fetch('/api/admin?mode=clinic_status', { cache: 'no-store' });
         const result = await response.json() as { clinicOpen?: boolean; error?: string };
         if (!response.ok || typeof result.clinicOpen !== 'boolean') {
           throw new Error(result.error || 'Clinic status could not be loaded.');
@@ -242,6 +259,11 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     };
 
     const loadAppointments = async () => {
+      if (!isSignedIn) {
+        setAppointments([]);
+        setAppointmentRequestAvailability('error');
+        return;
+      }
       try {
         const response = await requestWithToken('/api/appointments');
         const result = await response.json() as { appointments?: AppointmentApiRow[]; error?: string };
@@ -260,6 +282,11 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     };
 
     const loadUnreadMessages = async () => {
+      if (!isSignedIn) {
+        setUnreadAdminMessageCount(0);
+        setUnreadMessagesError('');
+        return;
+      }
       try {
         const response = await requestWithToken('/api/admin?mode=unread_messages');
         const result = await response.json() as { unreadCount?: number; error?: string };
@@ -295,7 +322,7 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
-  }, [getToken]);
+  }, [getToken, isSignedIn]);
 
   const cancelAppointment = async (id: string) => {
     const appointment = appointments.find((item) => item.id === id);
@@ -317,6 +344,8 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
       t: TRANSLATIONS[language],
       language,
       toggleLanguage,
+      accessibilityMode,
+      setAccessibilityMode,
       activeSection,
       setActiveSection,
       siteContent,

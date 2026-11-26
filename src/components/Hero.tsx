@@ -20,26 +20,26 @@ export const Hero: React.FC = () => {
       <div className="relative min-h-[220px] sm:min-h-[240px] flex items-center overflow-hidden border-b border-white/10">
         <img src={centerPhoto} alt="Delfin Salonga Health Center exterior" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-[#0f4d3c]/88" />
-        <div className="relative w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-6 sm:py-8">
-          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="max-w-2xl">
-              <h1 className="hero-enter max-w-xl text-2xl sm:text-3xl lg:text-4xl font-bold leading-[1.08] text-white">
+        <div className="relative mx-auto w-full max-w-7xl px-5 py-7 text-center sm:px-8 sm:py-9 lg:px-12">
+          <div className="flex w-full flex-col items-center gap-4">
+            <div className="max-w-3xl">
+              <h1 className="hero-enter mx-auto max-w-3xl text-2xl font-bold leading-[1.08] text-white sm:text-3xl lg:text-4xl">
                 Delfin Salonga Health Center
               </h1>
-              <div className="hero-actions mt-4 flex flex-wrap gap-2.5">
+              <div className="hero-actions mt-4 flex flex-wrap items-center justify-center gap-2.5">
                 {bookingEnabled && <button onClick={() => setBookingModalOpen(true)} title="Request an appointment" className="inline-flex min-h-11 items-center gap-2 bg-white text-[#0f4d3c] px-4 py-2.5 text-sm font-bold rounded-sm border border-white hover:bg-[#eaf3ee] transition-colors">
                   <CalendarDays className="w-4 h-4" /> REQUEST AN APPOINTMENT
                 </button>}
                 <button onClick={() => handleScrollTo('services')} className="inline-flex min-h-11 items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white border border-white/40 rounded-sm hover:border-white hover:bg-white/10 transition-colors">
                   View services <ArrowDown className="w-4 h-4" />
                 </button>
-                <div className="min-w-0 max-w-[290px] space-y-1.5 text-xs leading-relaxed text-white/85 sm:ml-2">
+                <div className="min-w-0 max-w-2xl space-y-1.5 text-left text-xs leading-relaxed text-white/90 sm:ml-2">
                   <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{clinicAddress || CLINIC_ADDRESS}</span></p>
                   <p className="flex items-start gap-2"><Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{clinicHours}</span></p>
                 </div>
               </div>
             </div>
-            <div className={`flex min-h-14 min-w-44 items-center justify-center gap-3 self-end rounded-md border px-4 py-2 text-base font-extrabold shadow-lg sm:min-h-16 sm:min-w-52 sm:self-center sm:px-5 sm:text-lg ${clinicStatusError || clinicOpen === null ? 'border-slate-200/50 bg-slate-950/45' : clinicOpen ? 'border-emerald-200/50 bg-emerald-950/50' : 'border-rose-200/60 bg-rose-950/55'}`} role="status" aria-live="polite">
+            <div className={`flex min-h-12 min-w-44 items-center justify-center gap-3 rounded-md border px-4 py-2 text-sm font-extrabold shadow-lg sm:min-h-14 sm:min-w-52 sm:px-5 sm:text-base ${clinicStatusError || clinicOpen === null ? 'border-slate-200/50 bg-slate-950/45' : clinicOpen ? 'border-emerald-200/50 bg-emerald-950/50' : 'border-rose-200/60 bg-rose-950/55'}`} role="status" aria-live="polite">
               <span className={`h-4 w-4 shrink-0 rounded-full ring-4 ${clinicStatusError || clinicOpen === null ? 'bg-slate-400 ring-slate-300/20' : clinicOpen ? 'bg-emerald-400 ring-emerald-300/20' : 'bg-rose-400 ring-rose-300/20'}`} />
               {clinicStatusError || clinicOpen === null
                 ? (language === 'fil' ? 'Hindi available ang status' : 'Status unavailable')

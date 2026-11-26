@@ -4,6 +4,7 @@ import { CalendarDays, Check, CheckCircle2, ChevronLeft, Clock3, LockKeyhole, Me
 import { AdminCalendar, SlotSetting, SlotSettingsForm } from './AdminCalendar';
 import { AdminContentManager } from './AdminContentManager';
 import { AdminReports } from './AdminReports';
+import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
 
 interface AppointmentRow {
   id: string;
@@ -13,9 +14,14 @@ interface AppointmentRow {
   phone: string;
   email: string;
   zone: string;
+  address: string;
+  health_concern: string;
+  patient_age: number;
   service_name: string;
   preferred_date: string;
   preferred_time: string;
+  priority_type: string;
+  priority_reason: string;
   status: string;
   chat_status: string;
   created_at: string;
@@ -36,10 +42,13 @@ export const AdminPanel: React.FC = () => {
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [slotSettings, setSlotSettings] = useState<SlotSetting[]>([]);
-  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'content' | 'reports'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'content' | 'completed'>('requests');
   const [selectedId, setSelectedId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [requestTypeFilter, setRequestTypeFilter] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -87,26 +96,35 @@ export const AdminPanel: React.FC = () => {
   const services = useMemo(() => [...new Set(appointments.map((appointment) => appointment.service_name).filter(Boolean))].sort(), [appointments]);
   const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
   const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
   const counts = useMemo(() => ({
     pending: appointments.filter((appointment) => appointment.status === 'pending').length,
     confirmed: appointments.filter((appointment) => appointment.status === 'confirmed').length,
     rejected: appointments.filter((appointment) => appointment.status === 'rejected' || appointment.status === 'cancelled').length,
-  }), [appointments]);
+    upcoming: appointments.filter((appointment) => appointment.status === 'confirmed' && appointment.preferred_date >= today).length,
+  }), [appointments, today]);
   const filteredAppointments = useMemo(() => {
     const query = search.trim().toLowerCase();
     return appointments.filter((appointment) => {
-      const matchesStatus = statusFilter === 'all'
-        || (statusFilter === 'rejected' ? ['rejected', 'cancelled'].includes(appointment.status) : appointment.status === statusFilter);
+      const matchesStatus = appointment.status !== 'completed'
+        && (statusFilter === 'all'
+          || (statusFilter === 'rejected' ? ['rejected', 'cancelled'].includes(appointment.status) : appointment.status === statusFilter));
       const matchesService = serviceFilter === 'all' || appointment.service_name === serviceFilter;
+      const matchesRequestType = requestTypeFilter === 'all' || appointment.priority_type === requestTypeFilter;
+      const matchesDate = (!fromDate || appointment.preferred_date >= fromDate)
+        && (!toDate || appointment.preferred_date <= toDate);
       const matchesSearch = !query || [
         appointment.patient_name,
         appointment.reference_code,
         appointment.service_name,
         appointment.phone,
       ].some((value) => value.toLowerCase().includes(query));
-      return matchesStatus && matchesService && matchesSearch;
-    });
-  }, [appointments, search, serviceFilter, statusFilter]);
+      return matchesStatus && matchesService && matchesRequestType && matchesDate && matchesSearch;
+    }).sort((first, second) =>
+      first.preferred_date.localeCompare(second.preferred_date)
+      || (APPOINTMENT_TIME_ORDER[first.preferred_time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.preferred_time] ?? 99)
+      || first.created_at.localeCompare(second.created_at));
+  }, [appointments, fromDate, search, serviceFilter, statusFilter, requestTypeFilter, toDate]);
 
   useEffect(() => {
     if (selectedId && !filteredAppointments.some((appointment) => appointment.id === selectedId)) {
@@ -124,6 +142,7 @@ export const AdminPanel: React.FC = () => {
       const slotSetting = dateSettings.find((setting) => setting.time_slot === appointment.preferred_time);
       const slotBlocked = Number(slotSetting?.blocked) === 1;
       const acceptedCount = appointments.filter((item) => item.status === 'confirmed'
+        && item.priority_type !== 'priority'
         && item.preferred_date === appointment.preferred_date
         && item.preferred_time === appointment.preferred_time).length;
       const slotCapacity = Number(slotSetting?.capacity ?? 0);
@@ -131,7 +150,7 @@ export const AdminPanel: React.FC = () => {
         setError('This appointment date or time slot is blocked. Unblock it in Calendar & availability before accepting.');
         return;
       }
-      if (slotCapacity > 0 && acceptedCount >= slotCapacity) {
+      if (appointment.priority_type !== 'priority' && slotCapacity > 0 && acceptedCount >= slotCapacity) {
         setError('This time slot has reached its appointment limit. Increase the capacity in Calendar & availability before accepting.');
         return;
       }
@@ -249,8 +268,9 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        <section aria-label="Appointment summary" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <section aria-label="Appointment summary" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
+            { label: 'Upcoming appointments', value: counts.upcoming, icon: CalendarDays, color: 'text-sky-800', bg: 'bg-sky-50', border: 'border-l-sky-400' },
             { label: 'Awaiting review', value: counts.pending, icon: Clock3, color: 'text-amber-800', bg: 'bg-amber-50', border: 'border-l-amber-400' },
             { label: 'Accepted', value: counts.confirmed, icon: Check, color: 'text-emerald-800', bg: 'bg-emerald-50', border: 'border-l-emerald-500' },
             { label: 'Rejected or cancelled', value: counts.rejected, icon: X, color: 'text-rose-800', bg: 'bg-rose-50', border: 'border-l-rose-500' },
@@ -262,14 +282,14 @@ export const AdminPanel: React.FC = () => {
           ))}
         </section>
 
-        <nav aria-label="Admin sections" className="mb-5 flex gap-1 overflow-x-auto rounded-md border border-[#dce7e1] bg-white p-1 shadow-sm">
+        <nav aria-label="Admin sections" className="mb-5 flex gap-2 overflow-x-auto rounded-md border border-[#dce7e1] bg-white p-2 shadow-sm">
           {[
             { id: 'requests', label: 'Appointment requests' },
             { id: 'calendar', label: 'Calendar & availability' },
             { id: 'content', label: 'Website content' },
-            { id: 'reports', label: 'Reports & export' },
+            { id: 'completed', label: 'Completed records' },
           ].map(({ id, label }) => (
-            <button key={id} type="button" onClick={() => setActiveTab(id as 'requests' | 'calendar' | 'content' | 'reports')} className={`min-h-11 shrink-0 rounded-sm px-3 py-2.5 text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
+            <button key={id} type="button" onClick={() => setActiveTab(id as 'requests' | 'calendar' | 'content' | 'completed')} className={`min-h-11 shrink-0 rounded-sm px-3 py-2.5 text-xs font-bold sm:px-4 sm:text-sm ${activeTab === id ? 'bg-[#0f4d3c] text-white' : 'text-[#66736f] hover:bg-[#f2f7f4] hover:text-[#0f4d3c]'}`}>{label}</button>
           ))}
         </nav>
 
@@ -283,8 +303,8 @@ export const AdminPanel: React.FC = () => {
           />
         ) : activeTab === 'content' ? (
           <AdminContentManager />
-        ) : activeTab === 'reports' ? (
-          <AdminReports appointments={appointments} />
+        ) : activeTab === 'completed' ? (
+          <AdminReports appointments={appointments.filter((appointment) => appointment.status === 'completed')} />
         ) : (
         <section className="grid min-w-0 overflow-hidden rounded-md border border-[#dce7e1] bg-white shadow-sm lg:min-h-[640px] lg:grid-cols-[350px_minmax(0,1fr)]">
           <aside className={`${selected ? 'hidden lg:block' : ''} min-w-0 border-b border-[#dce7e1] lg:border-b-0 lg:border-r`}>
@@ -299,7 +319,6 @@ export const AdminPanel: React.FC = () => {
                   ['all', 'All'],
                   ['pending', 'Pending'],
                   ['confirmed', 'Accepted'],
-                  ['completed', 'Completed'],
                   ['rejected', 'Rejected'],
                 ].map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setStatusFilter(value)} className={`min-h-11 shrink-0 whitespace-nowrap px-3 text-xs font-bold ${statusFilter === value ? 'bg-[#173a37] text-white' : 'bg-[#f1f4f1] text-[#66736f] hover:bg-[#e7ede8]'}`}>{label}</button>
@@ -311,11 +330,20 @@ export const AdminPanel: React.FC = () => {
                   {services.map((service) => <option key={service} value={service}>{service}</option>)}
                 </select>
               </label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <label className="text-[11px] font-semibold text-[#66736f]">From date<input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => setFromDate(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] px-2 text-xs text-[#17312e]" /></label>
+                <label className="text-[11px] font-semibold text-[#66736f]">To date<input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] px-2 text-xs text-[#17312e]" /></label>
+              </div>
+              <label className="mt-2 block text-[11px] font-semibold text-[#66736f]">Request type
+                <select value={requestTypeFilter} onChange={(event) => setRequestTypeFilter(event.target.value)} className="mt-1 block min-h-10 w-full border border-[#d9e1dc] bg-white px-3 text-xs text-[#17312e]">
+                  <option value="all">All requests</option><option value="regular">Regular</option><option value="priority">Priority</option>
+                </select>
+              </label>
             </div>
             <div className="max-h-[420px] overflow-y-auto lg:max-h-[calc(100vh-360px)]">
               {loading ? <p className="p-5 text-sm text-[#66736f]">Loading requests...</p> : filteredAppointments.map((appointment) => (
                 <button key={appointment.id} type="button" onClick={() => setSelectedId(appointment.id)} className={`w-full border-b border-[#edf1ee] border-l-2 px-4 py-4 text-left transition-colors hover:bg-[#f5f8f5] ${selectedId === appointment.id ? 'border-l-[#17645c] bg-[#f0f5f1]' : 'border-l-transparent'}`}>
-                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-bold">{appointment.patient_name}</div><div className="mt-1 truncate text-xs text-[#66736f]">{appointment.service_name}</div></div><span className={`shrink-0 px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-bold">{appointment.patient_name}</div><div className="mt-1 truncate text-xs text-[#66736f]">{appointment.service_name}</div></div><div className="flex shrink-0 flex-wrap justify-end gap-1"><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.priority_type === 'priority' ? 'bg-violet-100 text-violet-800' : 'bg-slate-100 text-slate-600'}`}>{appointment.priority_type === 'priority' ? 'Priority' : 'Regular'}</span><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div></div>
                   <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-[#66736f]"><span>{appointment.preferred_date} · {appointment.preferred_time}</span><span className="break-all font-mono">{appointment.reference_code}</span></div>
                 </button>
               ))}
@@ -340,6 +368,10 @@ export const AdminPanel: React.FC = () => {
                   <dl className="mt-6 space-y-4 border-y border-[#edf1ee] py-5 text-sm">
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Preferred appointment</dt><dd className="mt-1 font-medium">{selected.preferred_date} · {selected.preferred_time}</dd></div>
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Barangay</dt><dd className="mt-1 font-medium">{selected.zone}</dd></div>
+                    <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Street address</dt><dd className="mt-1 break-words font-medium">{selected.address || 'Not provided'}</dd></div>
+                    <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Reason for visit</dt><dd className="mt-1 break-words font-medium">{selected.health_concern || 'Not provided'}</dd></div>
+                    {selected.patient_age > 0 && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Age</dt><dd className="mt-1 font-medium">{selected.patient_age}</dd></div>}
+                    {selected.priority_type === 'priority' && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Priority review</dt><dd className="mt-1 font-medium capitalize">{selected.priority_reason || 'Eligible request'}</dd></div>}
                     <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Contact number</dt><dd className="mt-1 font-medium">{selected.phone}</dd></div>
                     {selected.email && <div><dt className="text-[11px] font-bold uppercase tracking-wide text-[#87938c]">Email</dt><dd className="mt-1 break-all font-medium">{selected.email}</dd></div>}
                   </dl>

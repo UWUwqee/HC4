@@ -11,6 +11,7 @@ import maternityImage from '../assets/images/MATERNITY.png';
 import papSmearImage from '../assets/images/PAP SMEAR.png';
 import penMedsImage from '../assets/images/PEN MEDS.jpg';
 import tbDotsImage from '../assets/images/TB DOTS.png';
+import { BackToHomeButton } from './BackToHomeButton';
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
   checkup: checkupImage,
@@ -48,6 +49,7 @@ export const ServicesSection: React.FC = () => {
   return (
     <section id="services" className="site-section-bg section-enter services-enter border-b border-[#dce7e1] py-4 sm:py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-8 lg:px-12">
+        <BackToHomeButton />
         <div className="breadcrumb">
           Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Services</span>
         </div>

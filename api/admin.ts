@@ -60,10 +60,15 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
       phone TEXT NOT NULL,
       email TEXT,
       zone TEXT NOT NULL,
+      address TEXT NOT NULL DEFAULT '',
+      health_concern TEXT NOT NULL DEFAULT '',
+      patient_age INTEGER NOT NULL DEFAULT 0,
       service_id TEXT NOT NULL,
       service_name TEXT NOT NULL,
       preferred_date TEXT NOT NULL,
       preferred_time TEXT NOT NULL,
+      priority_type TEXT NOT NULL DEFAULT 'regular',
+      priority_reason TEXT NOT NULL DEFAULT '',
       privacy_consent INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
@@ -111,6 +116,17 @@ async function initializeAdminDatabase(db: ReturnType<typeof createClient>) {
   if (!columnNames.has('chat_status')) {
     await db.execute("ALTER TABLE appointment_requests ADD COLUMN chat_status TEXT NOT NULL DEFAULT 'closed'");
   }
+  for (const [column, definition] of [
+    ['address', "TEXT NOT NULL DEFAULT ''"],
+    ['health_concern', "TEXT NOT NULL DEFAULT ''"],
+    ['patient_age', 'INTEGER NOT NULL DEFAULT 0'],
+    ['priority_type', "TEXT NOT NULL DEFAULT 'regular'"],
+    ['priority_reason', "TEXT NOT NULL DEFAULT ''"],
+  ]) {
+    if (!columnNames.has(column)) {
+      await db.execute(`ALTER TABLE appointment_requests ADD COLUMN ${column} ${definition}`);
+    }
+  }
 }
 
 async function authenticate(request: ApiRequest) {
@@ -142,6 +158,23 @@ function isAdmin(decoded: ClerkIdentity | null) {
 export default async function handler(request: ApiRequest, response: ApiResponse) {
   response.setHeader('Cache-Control', 'no-store');
 
+  const mode = new URL(request.url ?? '/', 'http://localhost').searchParams.get('mode');
+  if (request.method === 'GET' && mode === 'clinic_status') {
+    const db = getDatabase();
+    if (!db) return response.status(503).json({ error: 'Turso database is not configured.' });
+    try {
+      await ensureClinicSettings(db);
+      const result = await db.execute("SELECT setting_value, updated_at FROM clinic_settings WHERE setting_key = 'clinic_open'");
+      const setting = result.rows[0];
+      return response.status(200).json({
+        clinicOpen: setting?.setting_value === '1',
+        updatedAt: setting?.updated_at ?? null,
+      });
+    } catch {
+      return response.status(500).json({ error: 'Clinic status could not be loaded.' });
+    }
+  }
+
   let decoded;
   try {
     decoded = await authenticate(request);
@@ -159,21 +192,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   const db = getDatabase();
   if (!db) return response.status(503).json({ error: 'Turso database is not configured.' });
-
-  const mode = new URL(request.url ?? '/', 'http://localhost').searchParams.get('mode');
-  if (request.method === 'GET' && mode === 'clinic_status') {
-    try {
-      await ensureClinicSettings(db);
-      const result = await db.execute("SELECT setting_value, updated_at FROM clinic_settings WHERE setting_key = 'clinic_open'");
-      const setting = result.rows[0];
-      return response.status(200).json({
-        clinicOpen: setting?.setting_value === '1',
-        updatedAt: setting?.updated_at ?? null,
-      });
-    } catch {
-      return response.status(500).json({ error: 'Clinic status could not be loaded.' });
-    }
-  }
 
   await initializeAdminDatabase(db);
   const admin = isAdmin(decoded);
@@ -561,16 +579,19 @@ export default async function handler(request: ApiRequest, response: ApiResponse
                     AND blocked = 1
                 )
                 AND (
+                  appointment_requests.priority_type = 'priority'
+                  OR
                   COALESCE((
                     SELECT capacity FROM appointment_slot_settings
                     WHERE appointment_date = appointment_requests.preferred_date
                       AND time_slot = appointment_requests.preferred_time
                   ), 0) = 0
                   OR (
-                    SELECT COUNT(*) FROM appointment_requests AS accepted
+                      SELECT COUNT(*) FROM appointment_requests AS accepted
                     WHERE accepted.status = 'confirmed'
                       AND accepted.preferred_date = appointment_requests.preferred_date
                       AND accepted.preferred_time = appointment_requests.preferred_time
+                      AND accepted.priority_type != 'priority'
                   ) < (
                     SELECT capacity FROM appointment_slot_settings
                     WHERE appointment_date = appointment_requests.preferred_date

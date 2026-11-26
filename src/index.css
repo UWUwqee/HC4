@@ -85,6 +85,14 @@
   }
 }
 
+html[data-accessibility-mode="high-contrast"] .public-page-shell {
+  filter: contrast(1.25);
+}
+
+html[data-accessibility-mode="large-text"] {
+  font-size: 112.5%;
+}
+
 .public-page-shell {
   background-color: var(--color-page-bg);
   color: var(--color-body);

@@ -13,7 +13,7 @@ type ApiResponse = ServerResponse & {
 };
 
 const zones = new Set(COVERAGE_AREAS);
-const preferredTimes = new Set(['morning', 'afternoon']);
+const preferredTimes = new Set(['morning', 'afternoon', 'no preference']);
 
 let database: ReturnType<typeof createClient> | undefined;
 
@@ -51,10 +51,15 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
       phone TEXT NOT NULL,
       email TEXT,
       zone TEXT NOT NULL,
+      address TEXT NOT NULL DEFAULT '',
+      health_concern TEXT NOT NULL DEFAULT '',
+      patient_age INTEGER NOT NULL DEFAULT 0,
       service_id TEXT NOT NULL,
       service_name TEXT NOT NULL,
       preferred_date TEXT NOT NULL,
       preferred_time TEXT NOT NULL,
+      priority_type TEXT NOT NULL DEFAULT 'regular',
+      priority_reason TEXT NOT NULL DEFAULT '',
       privacy_consent INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       chat_status TEXT NOT NULL DEFAULT 'closed',
@@ -68,6 +73,17 @@ async function ensureAppointmentTable(db: ReturnType<typeof createClient>) {
   }
   if (!columnNames.has('chat_status')) {
     await db.execute("ALTER TABLE appointment_requests ADD COLUMN chat_status TEXT NOT NULL DEFAULT 'closed'");
+  }
+  for (const [column, definition] of [
+    ['address', "TEXT NOT NULL DEFAULT ''"],
+    ['health_concern', "TEXT NOT NULL DEFAULT ''"],
+    ['patient_age', 'INTEGER NOT NULL DEFAULT 0'],
+    ['priority_type', "TEXT NOT NULL DEFAULT 'regular'"],
+    ['priority_reason', "TEXT NOT NULL DEFAULT ''"],
+  ]) {
+    if (!columnNames.has(column)) {
+      await db.execute(`ALTER TABLE appointment_requests ADD COLUMN ${column} ${definition}`);
+    }
   }
   await db.execute(`
     CREATE TABLE IF NOT EXISTS appointment_slot_settings (
@@ -106,15 +122,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     try {
       await ensureAppointmentTable(db);
       const result = await db.execute(`
-        SELECT preferred_date, preferred_time, COUNT(*) AS booked_count
+        SELECT preferred_date, preferred_time, priority_type, COUNT(*) AS booked_count
         FROM appointment_requests
         WHERE status = 'confirmed'
-        GROUP BY preferred_date, preferred_time
+        GROUP BY preferred_date, preferred_time, priority_type
         ORDER BY preferred_date ASC
       `);
       const slots = result.rows.map((row) => ({
         date: String(row.preferred_date),
         time: String(row.preferred_time),
+        category: String(row.priority_type) === 'priority' ? 'priority' : 'regular',
         bookedCount: Number(row.booked_count),
       }));
       const settingResult = await db.execute({
@@ -165,6 +182,10 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   const phone = text(body.phone, 32);
   const email = text(body.email, 254).toLowerCase();
   const zone = text(body.zone, 40);
+  const address = text(body.address, 300);
+  const healthConcern = text(body.healthConcern, 500);
+  const ageWasProvided = body.patientAge !== '' && body.patientAge !== undefined;
+  const patientAge = ageWasProvided ? Number(body.patientAge) : 0;
   const serviceId = text(body.serviceId, 40);
   const preferredDate = text(body.preferredDate, 10);
   const preferredTime = text(body.preferredTime, 30);
@@ -198,6 +219,9 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   if (phoneDigits.length < 7) return response.status(400).json({ error: 'Enter a contact number with at least 7 digits.' });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return response.status(400).json({ error: 'Enter a valid email address or leave it blank.' });
   if (!zones.has(zone)) return response.status(400).json({ error: 'Select a valid zone or barangay.' });
+  if (address.length < 5) return response.status(400).json({ error: 'Enter a valid street address.' });
+  if (healthConcern.length < 2) return response.status(400).json({ error: 'Briefly describe the reason for your visit.' });
+  if (ageWasProvided && (!Number.isInteger(patientAge) || patientAge < 1 || patientAge > 120)) return response.status(400).json({ error: 'Enter a valid age from 1 to 120, or leave it blank.' });
   if (!/^[a-zA-Z0-9_-]{1,40}$/.test(serviceId)) return response.status(400).json({ error: 'Select a valid service.' });
   if (!dateIsValid || preferredDate < today) return response.status(400).json({ error: 'Choose a valid appointment date that is today or later.' });
   if (!preferredTimes.has(preferredTime)) return response.status(400).json({ error: 'Select a valid time slot.' });
@@ -221,9 +245,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       args: [serviceId],
     });
     if (!serviceResult.rows[0]) return response.status(400).json({ error: 'This service is no longer available for appointment requests.' });
-    const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown };
+    const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown; category?: unknown };
     const serviceName = typeof service.title === 'string' ? service.title.trim().slice(0, 160) : '';
     if (!serviceName) return response.status(400).json({ error: 'The selected service is not configured for appointment requests.' });
+    const priorityReason = patientAge >= 60
+      ? 'senior'
+      : service.category === 'maternity' ? 'maternity' : '';
+    const priorityType = priorityReason ? 'priority' : 'regular';
     const clinicStatus = await db.execute("SELECT setting_value FROM clinic_settings WHERE setting_key = 'clinic_open'");
     if (clinicStatus.rows[0]?.setting_value !== '1') {
       return response.status(409).json({ error: 'Appointment requests are currently closed by the health center.' });
@@ -259,10 +287,15 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       }
       await transaction.execute({
         sql: `INSERT INTO appointment_requests (
-          id, owner_uid, reference_code, patient_name, phone, email, zone, service_id,
-          service_name, preferred_date, preferred_time, privacy_consent, status, chat_status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending', 'closed', ?)`,
-        args: [id, ownerUid, referenceCode, patientName, phone, email || null, zone, serviceId, serviceName, preferredDate, preferredTime, createdAt],
+          id, owner_uid, reference_code, patient_name, phone, email, zone, address, health_concern,
+          patient_age, service_id, service_name, preferred_date, preferred_time, priority_type,
+          priority_reason, privacy_consent, status, chat_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'pending', 'closed', ?)`,
+        args: [
+          id, ownerUid, referenceCode, patientName, phone, email || null, zone, address,
+          healthConcern, patientAge, serviceId, serviceName, preferredDate, preferredTime,
+          priorityType, priorityReason, createdAt,
+        ],
       });
       await transaction.commit();
     } catch (error) {

@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { CLINIC_ADDRESS } from '../data/delfinSalongaClinicInfo';
+import { BackToHomeButton } from './BackToHomeButton';
+import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
 
 interface ScheduleSlot {
   date: string;
   time: string;
+  category: 'regular' | 'priority';
   bookedCount: number;
 }
 
@@ -23,22 +26,27 @@ export const AppointmentSchedule: React.FC = () => {
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   useEffect(() => {
     const loadSchedule = () => {
-    const controller = new AbortController();
-    void fetch('/api/appointments', { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Schedule unavailable');
-        return response.json() as Promise<{ slots: ScheduleSlot[] }>;
-      })
-      .then((data) => setSlots(data.slots))
-      .catch((caught) => {
-        if (caught instanceof DOMException && caught.name === 'AbortError') return;
-        setError(isFilipino ? 'Hindi ma-load ang iskedyul.' : 'Schedule could not be loaded.');
-      })
-      .finally(() => setLoading(false));
-    return controller;
+      const controller = new AbortController();
+      void fetch('/api/appointments', { signal: controller.signal })
+        .then(async (response) => {
+          if (!response.ok) throw new Error('Schedule unavailable');
+          return response.json() as Promise<{ slots: ScheduleSlot[] }>;
+        })
+        .then((data) => {
+          setSlots(data.slots);
+          setError('');
+        })
+        .catch((caught) => {
+          if (caught instanceof DOMException && caught.name === 'AbortError') return;
+          setError(isFilipino ? 'Hindi ma-load ang iskedyul.' : 'Schedule could not be loaded.');
+        })
+        .finally(() => setLoading(false));
+      return controller;
     };
     let controller = loadSchedule();
     const timer = window.setInterval(() => {
@@ -56,17 +64,15 @@ export const AppointmentSchedule: React.FC = () => {
     afternoon: isFilipino ? 'Hapon' : 'Afternoon',
     'no preference': isFilipino ? 'Anumang oras' : 'Any time',
   };
-  const timeOrder: Record<string, number> = { morning: 0, afternoon: 1, 'no preference': 2 };
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-  const appointmentsByDate = slots.reduce<Record<string, ScheduleSlot[]>>((grouped, slot) => {
-    (grouped[slot.date] ??= []).push(slot);
-    return grouped;
-  }, {});
-  const dates = Object.keys(appointmentsByDate).filter((date) => date >= today).sort();
+  const visibleSlots = slots.filter((slot) => slot.date >= today
+    && (!fromDate || slot.date >= fromDate)
+    && (!toDate || slot.date <= toDate));
 
   return (
     <section id="schedule" className="site-section-bg section-enter border-b border-[#dce7e1] py-3 sm:py-4">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <BackToHomeButton />
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Schedule</span></div>
         <div className="mb-3">
           <div>
@@ -80,7 +86,16 @@ export const AppointmentSchedule: React.FC = () => {
           </div>
         </div>
 
-        {loading || error || dates.length === 0 ? (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-[#4b5563]">{isFilipino ? 'Mula sa petsa' : 'From date'}
+            <input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => setFromDate(event.target.value)} className="mt-1 block min-h-11 w-full rounded-sm border border-[#dce7e1] bg-white px-3 text-sm text-[#17312e]" />
+          </label>
+          <label className="text-xs font-semibold text-[#4b5563]">{isFilipino ? 'Hanggang petsa' : 'Through date'}
+            <input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} className="mt-1 block min-h-11 w-full rounded-sm border border-[#dce7e1] bg-white px-3 text-sm text-[#17312e]" />
+          </label>
+        </div>
+
+        {loading || error || visibleSlots.length === 0 ? (
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)]">
             <div className="site-card flex flex-col items-start p-3 sm:p-4">
               <CalendarDays className="h-8 w-8 text-[#2c7a5f]" aria-hidden="true" />
@@ -88,7 +103,7 @@ export const AppointmentSchedule: React.FC = () => {
               <p role={error ? 'alert' : 'status'} className={`mt-2 max-w-xl text-sm leading-relaxed ${error ? 'text-rose-800' : 'text-[#6b7280]'}`}>
                 {error || (loading
                   ? (isFilipino ? 'Nilo-load ang mga kumpirmadong appointment...' : 'Loading accepted appointments...')
-                  : (isFilipino ? 'Lalabas dito ang mga oras ng appointment kapag naaprubahan na ng clinic staff.' : 'Approved appointment times will appear here after clinic staff accept them.'))}
+                  : (isFilipino ? 'Walang kumpirmadong appointment sa napiling panahon.' : 'No accepted appointments were found for this date range.'))}
               </p>
             </div>
             <aside className="site-card p-3 sm:p-4">
@@ -101,24 +116,38 @@ export const AppointmentSchedule: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {dates.flatMap((date) => appointmentsByDate[date]
+            {(['priority', 'regular'] as const).map((category) => {
+              const categorySlots = visibleSlots
+                .filter((slot) => slot.category === category)
                 .slice()
-                .sort((first, second) => (timeOrder[first.time] ?? 99) - (timeOrder[second.time] ?? 99))
-                .map((slot) => (
-                  <article key={`${date}-${slot.time}`} className="site-card p-3 transition-colors hover:border-[#9bbdad]">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-[#2c7a5f]">{date}</p>
-                    <h3 className="mt-1 text-sm font-bold text-[#0f4d3c]">{dateLabel(date)}</h3>
-                    <div className="mt-3 flex items-center gap-2 border-t border-[#e7eee9] pt-3">
-                      <Clock3 className="h-5 w-5 shrink-0 text-[#2c7a5f]" />
-                      <span className="text-base font-bold text-[#0f4d3c]">{timeLabels[slot.time] ?? slot.time}</span>
-                    </div>
-                    <p className="mt-2 text-sm text-[#6b7280]">
-                      <strong className="text-[#374151]">{slot.bookedCount}</strong> {isFilipino ? 'appointment na naaprubahan' : `accepted ${slot.bookedCount === 1 ? 'appointment' : 'appointments'}`}
-                    </p>
-                  </article>
-                )))}
-            </div>
+                .sort((first, second) => first.date.localeCompare(second.date)
+                  || (APPOINTMENT_TIME_ORDER[first.time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.time] ?? 99));
+              if (categorySlots.length === 0) return null;
+              return (
+                <section key={category} className="mb-5">
+                  <h3 className="mb-3 text-lg font-bold text-[#0f4d3c]">
+                    {category === 'priority'
+                      ? (isFilipino ? 'Mga priority appointment' : 'Priority appointments')
+                      : (isFilipino ? 'Mga regular na appointment' : 'Regular appointments')}
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {categorySlots.map((slot) => (
+                      <article key={`${category}-${slot.date}-${slot.time}`} className="site-card p-3 transition-colors hover:border-[#9bbdad]">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-[#2c7a5f]">{slot.date}</p>
+                        <h4 className="mt-1 text-sm font-bold text-[#0f4d3c]">{dateLabel(slot.date)}</h4>
+                        <div className="mt-3 flex items-center gap-2 border-t border-[#e7eee9] pt-3">
+                          <Clock3 className="h-5 w-5 shrink-0 text-[#2c7a5f]" />
+                          <span className="text-base font-bold text-[#0f4d3c]">{timeLabels[slot.time] ?? slot.time}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-[#6b7280]">
+                          <strong className="text-[#374151]">{slot.bookedCount}</strong> {isFilipino ? 'appointment na naaprubahan' : `accepted ${slot.bookedCount === 1 ? 'appointment' : 'appointments'}`}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
             <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-2 border-t border-[#dce7e1] pt-3 text-xs text-[#6b7280]">
               <span className="flex items-start gap-2"><Clock3 className="mt-0.5 h-4 w-4 text-[#2c7a5f]" />{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</span>
               <span className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 text-[#2c7a5f]" />{clinicAddress}</span>

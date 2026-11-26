@@ -55,6 +55,9 @@ export const OutreachBookingModal: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [zone, setZone] = useState(COVERAGE_AREAS[0]);
+  const [address, setAddress] = useState('');
+  const [healthConcern, setHealthConcern] = useState('');
+  const [patientAge, setPatientAge] = useState('');
   const [preferredDate, setPreferredDate] = useState(localDateString);
   const [preferredTime, setPreferredTime] = useState('morning');
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -86,6 +89,9 @@ export const OutreachBookingModal: React.FC = () => {
       setPatientName('');
       setPhone('');
       setEmail('');
+      setAddress('');
+      setHealthConcern('');
+      setPatientAge('');
       setPrivacyConsent(false);
     }
   }, [bookingModalOpen]);
@@ -143,6 +149,9 @@ export const OutreachBookingModal: React.FC = () => {
   const isFilipino = language === 'fil';
   const canSubmitAppointment = clinicOpen === true;
   const selectedService = services.find((service) => service.id === serviceId);
+  const priorityReason = Number(patientAge) >= 60
+    ? (isFilipino ? 'senior citizen' : 'senior')
+    : selectedService?.category === 'maternity' ? (isFilipino ? 'maternity care' : 'maternity care') : '';
   const today = localDateString();
   const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
   const timeBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === preferredTime && setting.blocked);
@@ -187,6 +196,9 @@ export const OutreachBookingModal: React.FC = () => {
           phone,
           email,
           zone,
+          address,
+          healthConcern,
+          patientAge: patientAge ? Number(patientAge) : undefined,
           serviceId,
           preferredDate,
           preferredTime,
@@ -340,6 +352,26 @@ export const OutreachBookingModal: React.FC = () => {
                   {COVERAGE_AREAS.map((area) => <option key={area} value={area}>{area}</option>)}
                 </select>
               </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="appointment-address" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Tirahan' : 'Street address'} *</label>
+                <input id="appointment-address" required minLength={5} maxLength={300} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="appointment-concern" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Pangunahing dahilan ng pagbisita' : 'Main reason for visit'} *</label>
+                <textarea id="appointment-concern" required minLength={2} maxLength={500} rows={3} value={healthConcern} onChange={(event) => setHealthConcern(event.target.value)} className="w-full resize-y border border-slate-300 px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+                <p className="mt-1 text-xs text-slate-500">{isFilipino ? 'Huwag ilagay dito ang impormasyong hindi kailangan para sa pag-iskedyul.' : 'Share only information needed to arrange your visit.'}</p>
+              </div>
+              <div>
+                <label htmlFor="appointment-age" className="block text-sm font-semibold text-slate-800 mb-1.5">{isFilipino ? 'Edad (opsyonal)' : 'Age (optional)'}</label>
+                <input id="appointment-age" type="number" min={1} max={120} inputMode="numeric" value={patientAge} onChange={(event) => setPatientAge(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" />
+              </div>
+              {priorityReason && (
+                <p className="sm:col-span-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  {isFilipino
+                    ? `Awtomatikong ilalagay ang request sa priority review batay sa ${priorityReason}.`
+                    : `This request will be included in priority review based on ${priorityReason}.`}
+                </p>
+              )}
             </div>
             ) : (
             <>
@@ -351,7 +383,9 @@ export const OutreachBookingModal: React.FC = () => {
               <div>
                 <label htmlFor="appointment-time" className="block text-sm font-semibold text-slate-800 mb-1.5">{t.formTimeSlot} *</label>
                 <select id="appointment-time" value={preferredTime} onChange={(event) => setPreferredTime(event.target.value)} className="w-full px-3.5 py-3 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option value="morning">Morning</option><option value="afternoon">Afternoon</option>
+                  <option value="morning">{isFilipino ? 'Umaga' : 'Morning'}</option>
+                  <option value="afternoon">{isFilipino ? 'Hapon' : 'Afternoon'}</option>
+                  <option value="no preference">{isFilipino ? 'Anumang oras' : 'No preference'}</option>
                 </select>
               </div>
             </div>
@@ -361,7 +395,7 @@ export const OutreachBookingModal: React.FC = () => {
 
             <label className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm text-slate-600">
               <input type="checkbox" required checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-0.5 h-4 w-4 accent-teal-800" />
-              <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang aking contact details para suriin at sagutin ang appointment request na ito.' : 'I agree that health center staff may use my contact details to review and respond to this appointment request.'}</span>
+              <span>{isFilipino ? 'Pumapayag akong gamitin ng health center staff ang impormasyong inilagay ko upang suriin at sagutin ang appointment request na ito.' : 'I agree that health center staff may use the information I provided to review and respond to this appointment request.'}</span>
             </label>
             </>
             )}

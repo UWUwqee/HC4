@@ -10,12 +10,12 @@ import { AppointmentSchedule } from './components/AppointmentSchedule';
 import { Footer } from './components/Footer';
 import { OutreachBookingModal } from './components/OutreachBookingModal';
 import { CheckCircle2 } from 'lucide-react';
-import { AuthScreen } from './components/AuthScreen';
 import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
 import { PatientFlow } from './components/PatientFlow';
 
 const AppContent: React.FC = () => {
+  const { isSignedIn } = useAuth();
   const { activeSection, notificationToast, setNotificationToast, appointmentRequestAvailability, language } = useHealthCenter();
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const AppContent: React.FC = () => {
     <div className="public-page-shell min-h-screen flex flex-col text-[#374151] antialiased selection:bg-[#eaf3ee] selection:text-[#0f4d3c]">
       <Header />
 
-      {appointmentRequestAvailability === 'pending' && (
+      {isSignedIn && appointmentRequestAvailability === 'pending' && (
         <div role="status" aria-live="polite" className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-950">
           {language === 'fil'
             ? 'May appointment request ka pang naghihintay ng pagsusuri ng kawani.'
@@ -63,7 +63,7 @@ const AppContent: React.FC = () => {
 
       <Footer />
 
-      <UserAppointmentChat />
+      {isSignedIn && <UserAppointmentChat />}
       <OutreachBookingModal />
 
       {notificationToast && (
@@ -135,7 +135,13 @@ export default function App() {
     );
   }
 
-  if (!isSignedIn) return <AuthScreen />;
+  if (!isSignedIn) {
+    return (
+      <HealthCenterProvider>
+        <AppContent />
+      </HealthCenterProvider>
+    );
+  }
 
   if (accountRole === 'checking') {
     return (

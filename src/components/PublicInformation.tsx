@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Stethoscope } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
+import { BackToHomeButton } from './BackToHomeButton';
 
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
@@ -33,6 +34,7 @@ export const PublicInformation: React.FC = () => {
   return (
     <section id="information" className="site-section-bg section-enter border-b border-[#dce7e1] py-3 sm:py-4">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <BackToHomeButton />
         {siteContentError && <p role="status" className="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">{isFilipino ? 'Hindi ma-refresh ang pinakabagong impormasyon ng klinika; ipinapakita ang huling na-save na nilalaman.' : 'Clinic information could not be refreshed; showing the last saved content.'}</p>}
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Information</span></div>
         <div className="mb-4">
@@ -49,31 +51,41 @@ export const PublicInformation: React.FC = () => {
           <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {holidayAdvisory}</div>
         </div>
 
+        {updates.length > 0 && (
+          <section className="site-card mb-4 p-4 sm:p-5">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#0f4d3c]">
+              <Bell className="h-5 w-5 text-[#2c7a5f]" />
+              {isFilipino ? 'Mga anunsyo' : 'Announcements'}
+            </h3>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {updates.map((update) => (
+                <article key={update.id} className="min-w-0 border-t border-[#e7eee9] pt-3 first:border-0 first:pt-0 lg:first:border-t lg:first:pt-3">
+                  <h4 className="text-base font-bold text-[#0f4d3c]">{isFilipino ? update.titleFil : update.title}</h4>
+                  <p className="mt-1 text-sm leading-relaxed text-[#4b5563]">{isFilipino ? update.summaryFil : update.summary}</p>
+                  {update.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })}
+                      aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`}
+                      className="mt-3 block w-full cursor-zoom-in overflow-hidden rounded-sm bg-[#f1f5f2]"
+                    >
+                      <img src={update.imageUrl} alt="" loading="lazy" decoding="async" className="mx-auto max-h-64 w-full object-contain" />
+                    </button>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="grid items-start gap-3 md:grid-cols-2">
           <div className="grid content-start gap-3">
             <section className="site-card p-3 sm:p-4">
               <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Clock3 className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
-              <div className="space-y-1 text-xs text-[#374151]">
+              <div className="space-y-1 text-xs text-[#374151] sm:text-sm">
                 <p><strong className="text-sm font-bold uppercase text-[#0f4d3c]">{clinicDutyLabel}</strong>{clinicDutySchedule ? `: ${clinicDutySchedule}` : ''}</p>
                 {additionalClinicHours.map((hours, index) => <p key={`${index}-${hours}`}>{hours}</p>)}
               </div>
-            </section>
-
-            <section className="site-card p-3 sm:p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Bell className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Mga anunsyo' : 'Announcements'}</h3>
-              {updates.length > 0 ? (
-                <ul className="space-y-3">
-                  {updates.map((update) => (
-                    <li key={update.id} className="flex items-start gap-3 border-t border-[#e7eee9] pt-3 first:border-0 first:pt-0">
-                      {update.imageUrl && <button type="button" onClick={() => setViewingImage({ url: update.imageUrl!, alt: isFilipino ? update.titleFil : update.title })} aria-label={isFilipino ? `Tingnan ang buong larawan: ${update.titleFil}` : `View full image: ${update.title}`} className="shrink-0 cursor-zoom-in overflow-hidden rounded-sm bg-[#eaf3ee]"><img src={update.imageUrl} alt="" loading="lazy" decoding="async" className="h-12 w-14 object-cover" /></button>}
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[#0f4d3c]">{isFilipino ? update.titleFil : update.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6b7280]">{isFilipino ? update.summaryFil : update.summary}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang bagong anunsyo.' : 'There are no current announcements.'}</p>}
             </section>
 
             <section className="site-card p-3 sm:p-4">
@@ -84,11 +96,26 @@ export const PublicInformation: React.FC = () => {
                 </ul>
               ) : <p className="text-sm text-[#6b7280]">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
             </section>
+
+            <section className="site-card p-3 sm:p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]">
+                <Stethoscope className="h-5 w-5 text-[#2c7a5f]" />
+                {isFilipino ? 'Mga kawani ng klinika' : 'Clinic staff'}
+              </h3>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {STAFF_ROSTER.map((member) => (
+                  <li key={`${member.name}-${member.role}`} className="border-t border-[#e7eee9] pt-2 first:border-0 first:pt-0 sm:first:border-t sm:first:pt-2">
+                    <p className="text-sm font-semibold text-[#17312e]">{member.name}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-[#4b5563]">{member.role}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
 
           <section className="site-card p-3 sm:p-4">
             <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-[#0f4d3c]"><Stethoscope className="h-5 w-5 text-[#2c7a5f]" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}</h3>
-            <div className="space-y-3 text-xs leading-relaxed text-[#374151]">
+            <div className="space-y-3 text-xs leading-relaxed text-[#374151] sm:text-sm">
               {CLINIC_SCHEDULE.map((entry) => (
                 <div key={entry.day} className="border-t border-[#e7eee9] pt-2 first:border-0 first:pt-0">
                   <p className="font-bold text-[#0f4d3c]">{entry.day}</p>

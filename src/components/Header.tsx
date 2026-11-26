@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { useAuth } from '@clerk/react';
+import { SignInButton, useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
-import { Menu, X, Globe, CalendarDays, LogOut, Mail } from 'lucide-react';
+import { Menu, X, Globe, CalendarDays, LogOut, Mail, Accessibility } from 'lucide-react';
 import delfinSalongaLogo from '../assets/images/DELFIN.png';
 
 export const Header: React.FC = () => {
-  const { signOut } = useAuth();
+  const { isSignedIn, signOut } = useAuth();
   const {
     t,
     language,
     toggleLanguage,
+    accessibilityMode,
+    setAccessibilityMode,
     activeSection,
     setActiveSection,
     setBookingModalOpen,
@@ -34,6 +36,12 @@ export const Header: React.FC = () => {
     setActiveSection(id);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAccessibilityChange = (value: string) => {
+    if (value === 'standard' || value === 'high-contrast' || value === 'large-text') {
+      setAccessibilityMode(value);
+    }
   };
 
   return (
@@ -74,17 +82,31 @@ export const Header: React.FC = () => {
               <Globe className="w-4 h-4" />
               <span className="text-sm font-medium">{language === 'en' ? 'Filipino' : 'English'}</span>
             </button>
+            <label className="flex items-center gap-1.5 text-[#4b5563]" title="Accessibility display settings">
+              <Accessibility className="h-4 w-4" aria-hidden="true" />
+              <select aria-label="Accessibility display settings" value={accessibilityMode} onChange={(event) => handleAccessibilityChange(event.target.value)} className="min-h-9 bg-transparent text-xs font-medium">
+                <option value="standard">Standard</option>
+                <option value="high-contrast">High contrast</option>
+                <option value="large-text">Large text</option>
+              </select>
+            </label>
             {bookingEnabled && <button onClick={() => setBookingModalOpen(true)} title="Request an appointment" className="px-4 py-2.5 text-sm font-bold text-white bg-[#0f4d3c] hover:bg-[#2c7a5f] rounded-sm transition-colors whitespace-nowrap flex items-center gap-2">
               <CalendarDays className="w-4 h-4" />
               <span>REQUEST AN APPOINTMENT</span>
             </button>}
-            <button type="button" onClick={() => setMessagesOpen(true)} className="relative p-2 text-[#4b5563] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
+            {isSignedIn && <button type="button" onClick={() => setMessagesOpen(true)} className="relative p-2 text-[#4b5563] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
               <Mail className="h-5 w-5" />
               {unreadAdminMessageCount > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadAdminMessageCount > 99 ? '99+' : unreadAdminMessageCount}</span>}
-            </button>
-            <button type="button" onClick={() => void signOut()} className="p-2 text-[#4b5563] hover:text-[#0f4d3c]" aria-label="Sign out" title="Sign out">
-              <LogOut className="w-4 h-4" />
-            </button>
+            </button>}
+            {isSignedIn ? (
+              <button type="button" onClick={() => void signOut()} className="p-2 text-[#4b5563] hover:text-[#0f4d3c]" aria-label="Sign out" title="Sign out">
+                <LogOut className="w-4 h-4" />
+              </button>
+            ) : (
+              <SignInButton mode="modal">
+                <button type="button" className="min-h-11 px-3 text-sm font-bold text-[#0f4d3c] hover:bg-[#eaf3ee]">Sign in</button>
+              </SignInButton>
+            )}
           </div>
 
           <div className="flex items-center gap-1 xl:hidden sm:gap-2">
@@ -96,10 +118,15 @@ export const Header: React.FC = () => {
             >
               <Globe className="w-5 h-5" />
             </button>
-            <button type="button" onClick={() => setMessagesOpen(true)} className="relative flex h-11 w-11 shrink-0 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
+            {isSignedIn && <button type="button" onClick={() => setMessagesOpen(true)} className="relative flex h-11 w-11 shrink-0 items-center justify-center text-[#4b5563] hover:text-[#0f4d3c] xl:hidden" aria-label={`Messages${unreadAdminMessageCount > 0 ? `, ${unreadAdminMessageCount} unread` : ''}`} title={unreadMessagesError || (unreadAdminMessageCount > 0 ? `${unreadAdminMessageCount} unread message${unreadAdminMessageCount === 1 ? '' : 's'}` : 'Messages')}>
               <Mail className="h-5 w-5" />
               {unreadAdminMessageCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadAdminMessageCount > 99 ? '99+' : unreadAdminMessageCount}</span>}
-            </button>
+            </button>}
+            {!isSignedIn && (
+              <SignInButton mode="modal">
+                <button type="button" className="min-h-11 px-2 text-xs font-bold text-[#0f4d3c]">Sign in</button>
+              </SignInButton>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#374151] hover:bg-[#eaf3ee] hover:text-[#0f4d3c]"
@@ -132,14 +159,25 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="pt-3 border-t border-[#e7eee9]">
+            <label className="flex min-h-11 items-center gap-2 px-3 text-sm font-semibold text-[#4b5563]">
+              <Accessibility className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1">Accessibility</span>
+              <select aria-label="Accessibility display settings" value={accessibilityMode} onChange={(event) => handleAccessibilityChange(event.target.value)} className="min-h-11 max-w-[55%] bg-transparent text-sm">
+                <option value="standard">Standard</option>
+                <option value="high-contrast">High contrast</option>
+                <option value="large-text">Large text</option>
+              </select>
+            </label>
             {bookingEnabled && <button onClick={() => { setBookingModalOpen(true); setMobileMenuOpen(false); }} className="min-h-11 w-full py-2.5 px-4 text-sm font-semibold text-white bg-[#0f4d3c] hover:bg-[#2c7a5f] rounded-md flex items-center justify-center gap-2">
               <CalendarDays className="w-4 h-4" />
               <span>REQUEST AN APPOINTMENT</span>
             </button>}
-            <button type="button" onClick={() => void signOut()} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-[#dce7e1] px-4 text-sm font-semibold text-[#4b5563] hover:bg-[#f2f7f4]">
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
+            {isSignedIn ? (
+              <button type="button" onClick={() => void signOut()} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-[#dce7e1] px-4 text-sm font-semibold text-[#4b5563] hover:bg-[#f2f7f4]">
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            ) : null}
           </div>
         </div>
       )}

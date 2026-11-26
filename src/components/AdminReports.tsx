@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { APPOINTMENT_TIME_ORDER } from '../appointmentSchedule';
 
 interface ReportAppointment {
   reference_code: string;
@@ -21,16 +22,17 @@ function csvCell(value: string) {
 export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ appointments }) => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [status, setStatus] = useState('all');
   const [service, setService] = useState('all');
 
   const services = useMemo(() => [...new Set(appointments.map((item) => item.service_name))].sort(), [appointments]);
   const filtered = useMemo(() => appointments.filter((item) => (
     (!fromDate || item.preferred_date >= fromDate)
     && (!toDate || item.preferred_date <= toDate)
-    && (status === 'all' || item.status === status)
     && (service === 'all' || item.service_name === service)
-  )), [appointments, fromDate, toDate, status, service]);
+  )).sort((first, second) =>
+    first.preferred_date.localeCompare(second.preferred_date)
+    || (APPOINTMENT_TIME_ORDER[first.preferred_time] ?? 99) - (APPOINTMENT_TIME_ORDER[second.preferred_time] ?? 99)
+    || first.created_at.localeCompare(second.created_at)), [appointments, fromDate, toDate, service]);
 
   const exportCsv = () => {
     const columns: Array<keyof ReportAppointment> = [
@@ -50,31 +52,24 @@ export const AdminReports: React.FC<{ appointments: ReportAppointment[] }> = ({ 
     URL.revokeObjectURL(url);
   };
 
-  const pendingCount = filtered.filter((item) => item.status === 'pending').length;
-  const acceptedCount = filtered.filter((item) => item.status === 'confirmed').length;
-  const completedCount = filtered.filter((item) => item.status === 'completed').length;
-
   return (
     <section className="space-y-4">
       <div className="rounded-md border border-[#dce7e1] bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div><h2 className="text-base font-bold">Appointment reports</h2><p className="mt-1 text-xs text-[#66736f]">Filter appointment records and export the results. Contact details are included in the admin-only download.</p></div>
-          <button type="button" onClick={exportCsv} disabled={filtered.length === 0} className="min-h-11 rounded-sm bg-[#0f4d3c] px-4 text-xs font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-50">Download CSV ({filtered.length})</button>
+          <div><h2 className="text-base font-bold">Completed appointment records</h2><p className="mt-1 text-xs text-[#66736f]">Review records by date and service. Only completed appointments can be included in the admin-only export.</p></div>
+          <button type="button" onClick={exportCsv} disabled={filtered.length === 0} className="min-h-11 rounded-sm bg-[#0f4d3c] px-4 text-xs font-bold text-white hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-50">Export completed records ({filtered.length})</button>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <label className="text-xs font-semibold text-[#66736f]">Appointment from<input type="date" value={fromDate} max={toDate || undefined} onChange={(event) => setFromDate(event.target.value)} className="mt-1 block min-h-11 w-full border border-[#d9e1dc] px-3 text-sm text-[#17312e]" /></label>
           <label className="text-xs font-semibold text-[#66736f]">Appointment to<input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} className="mt-1 block min-h-11 w-full border border-[#d9e1dc] px-3 text-sm text-[#17312e]" /></label>
-          <label className="text-xs font-semibold text-[#66736f]">Status<select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 block min-h-11 w-full border border-[#d9e1dc] bg-white px-3 text-sm text-[#17312e]"><option value="all">All statuses</option><option value="pending">Pending</option><option value="confirmed">Accepted</option><option value="completed">Completed</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option></select></label>
           <label className="text-xs font-semibold text-[#66736f]">Service<select value={service} onChange={(event) => setService(event.target.value)} className="mt-1 block min-h-11 w-full border border-[#d9e1dc] bg-white px-3 text-sm text-[#17312e]"><option value="all">All services</option>{services.map((name) => <option key={name}>{name}</option>)}</select></label>
         </div>
       </div>
 
-      <div aria-label="Filtered appointment summary" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div aria-label="Filtered appointment summary" className="grid grid-cols-2 gap-2">
         {[
-          ['Matching requests', filtered.length],
-          ['Awaiting review', pendingCount],
-          ['Accepted', acceptedCount],
-          ['Completed', completedCount],
+          ['Matching completed records', filtered.length],
+          ['Services represented', new Set(filtered.map((item) => item.service_name)).size],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-md border border-[#dce7e1] bg-white p-3 shadow-sm sm:p-4"><div className="text-2xl font-bold">{value}</div><div className="mt-1 text-xs text-[#66736f]">{label}</div></div>
         ))}
