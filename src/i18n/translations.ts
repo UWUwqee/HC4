@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    brand: 'Mayor Moises R. Flores Health Center',
+    brand: 'Delfin Salonga Health Center',
     navHome: 'Overview',
     navServices: 'Services',
     navStaff: 'Staff Directory',
@@ -15,27 +15,18 @@ export const translations = {
 
 
     bannerHours: 'Monday to Friday: 7:00 AM - 4:00 PM',
-    bannerDoctors: 'Clinic Hours: Mon 8AM - 3PM | Tues - Fri 9AM - 3PM',
-    bannerXray: 'Pateros X-ray Clinic (3rd Floor): Mon - Fri, 7AM - 10AM',
-    bannerDental: 'Dental Clinic: M W F Only',
+    bannerDoctors: '',
+    bannerDental: 'Dental Clinic: Thursday-Friday, 7:00 AM - 4:00 PM',
 
 
-    heroTitle: 'Mayor Moises R. Flores Health Center',
-    heroSubtitle: 'Serving San Pedro, Magtanggol, and Tabacalera. Offering maternity, nutrition (BNS 0-59 months OPT), dental (M-W-F), animal bite, check-up, 3rd floor X-ray clinic, and free maintenance medications.',
+    heroTitle: 'Delfin Salonga Health Center',
+    heroSubtitle: 'Serving Sto. Rosario-Kanluran and Sto. Rosario-Silangan in Pateros. Services include consultation, family planning, prenatal and postnatal care, immunization, dental service, TB-DOTS, Pen meds, and Pap smear.',
     heroCtaPrimary: 'Book Outreach Appointment',
     heroCtaSecondary: 'View Services',
 
 
     servicesTitle: 'Health Center Services',
-    servicesSubtitle: 'Programs and medical services offered at Mayor Moises R. Flores Health Center.',
-    serviceTabAll: 'All Services',
-    serviceTabMaternal: 'Maternity / Pregnant',
-    serviceTabNutrition: 'Nutrition (BNS)',
-    serviceTabDental: 'Dental (M-W-F)',
-    serviceTabRabies: 'Animal Bite',
-    serviceTabOPD: 'Check Up',
-    serviceTabXray: 'X-RAY CLINIC (3rd Floor)',
-    serviceTabMeds: 'Meds (Maintenance & TB)',
+    servicesSubtitle: 'Medical services provided by Delfin Salonga Health Center.',
     labelSchedule: 'Time / Schedule',
     labelLocation: 'Location',
     labelPersonnel: 'Staff / Personnel',
@@ -44,19 +35,10 @@ export const translations = {
     btnViewRequirements: 'Details',
 
 
-    medsTitle: 'Available Medications (Meds)',
-    medsSubtitle: 'High blood maintenance, Diabetics, and TB program medications.',
-    filterAllMeds: 'All Meds',
-    filterHypertension: 'High Blood',
-    filterDiabetes: 'Diabetics',
-    filterTB: 'TB Program',
-
-
     zonesTitle: 'Covered Zones (Zones na Sakop)',
-    zonesSubtitle: '1. San Pedro, 2. Magtanggol, 3. Tabacalera.',
-    zoneSanPedro: '1. San Pedro',
-    zoneMagtanggol: '2. Magtanggol',
-    zoneTabacalera: '3. Tabacalera',
+    zonesSubtitle: 'Sto. Rosario-Kanluran and Sto. Rosario-Silangan.',
+    zoneKanluran: 'Sto. Rosario-Kanluran',
+    zoneSilangan: 'Sto. Rosario-Silangan',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Midwife',
     labelAssignedNurse: 'Nurse',
@@ -64,14 +46,13 @@ export const translations = {
     labelActiveResidents: 'Registered Patients',
 
 
-    staffTitle: 'Doctors & Care Team',
-    staffSubtitle: 'Check who is on the team, their clinic schedule, and where to find them.',
+    staffTitle: 'Clinic Staff',
+    staffSubtitle: 'The available public roster lists clinic staff and their roles.',
     staffSearchPlaceholder: 'Search by name or role...',
     deptAll: 'All Staff',
     deptDoctors: 'Doctors',
     deptNutrition: 'Nutrition (BNS)',
     deptDental: 'Dental Clinic',
-    deptRadiology: 'X-Ray & Lab',
     deptNursing: 'Nursing & Midwifery',
     deptAdmin: 'Admin & Support',
     labelDutyHours: 'Schedule',
@@ -107,7 +88,7 @@ export const translations = {
     portalTitle: 'Patient Portal',
     portalSubtitle: 'Patient record management and direct messaging.',
     tabRecords: 'Vitals Record',
-    tabPrescriptions: 'Maintenance Meds',
+    tabPrescriptions: 'Prescriptions',
     tabMessaging: 'Staff Chat',
     labelPatientNo: 'Patient ID',
     labelDemographics: 'Patient Info',
@@ -118,15 +99,7 @@ export const translations = {
 
 
     analyticsTitle: 'Health Center Analytics',
-    analyticsSubtitle: 'Monitoring service engagement, zone distribution, and medication supplies.',
-    kpiConsultations: 'Monthly Consultations',
-    kpiSatisfaction: 'Satisfaction Rate',
-    kpiOptScreening: 'OPT Screening Progress',
-    kpiMedsDispensed: 'Free Meds Dispensed',
-    chartZoneFootfall: 'Zone Patient Footfall',
-    chartServiceVolume: 'Service Distribution',
-    chartNutritionStatus: 'OPT Nutritional Status (0-59 Months)',
-    chartInventoryStatus: 'Meds Stock Levels',
+    analyticsSubtitle: 'Verified clinic statistics will appear here when they are available.',
 
 
     contactTitle: 'Contact Health Center',
@@ -139,19 +112,13 @@ export const translations = {
     contactFormMessage: 'Message',
     btnSendInquiry: 'Submit Inquiry',
     inquirySuccess: 'Inquiry received. The health center staff will review your message.',
-    hotlineTitle: 'Emergency Hotlines',
-    hotlinePateros: 'Pateros Municipal Rescue: (02) 8642-5159',
-    hotlineAnimalBite: 'Animal Bite Hotline: (02) 8641-7640',
-    hotlineHealthCenter: 'Center Landline: (02) 8642-1923',
-
-
-    footerDescription: 'Serving San Pedro, Magtanggol, and Tabacalera in Pateros.',
+    footerDescription: 'Serving Sto. Rosario-Kanluran and Sto. Rosario-Silangan in Pateros.',
     footerQuickLinks: 'Quick Links',
-    footerHoursNotice: 'Monday to Friday: 7:00 AM - 4:00 PM | Clinic Hours: Mon 8AM - 3PM, Tues - Fri 9AM - 3PM.',
-    copyright: 'Mayor Moises R. Flores Health Center · Pateros.'
+    footerHoursNotice: 'Medical staff duty: Monday-Friday, 7:00 AM - 4:00 PM.',
+    copyright: 'Delfin Salonga Health Center · Pateros.'
   },
   fil: {
-    brand: 'Mayor Moises R. Flores Health Center',
+    brand: 'Delfin Salonga Health Center',
     navHome: 'Pangkalahatan',
     navServices: 'Mga Serbisyo',
     navStaff: 'Direktoryo ng Kawani',
@@ -166,27 +133,18 @@ export const translations = {
 
 
     bannerHours: 'Lunes hanggang Biyernes: 7:00 AM - 4:00 PM',
-    bannerDoctors: 'Clinic Hours: Lunes 8AM - 3PM | Martes - Biyernes 9AM - 3PM',
-    bannerXray: 'Pateros X-ray Clinic (3rd Floor): Lunes - Biyernes, 7AM - 10AM',
-    bannerDental: 'Dental Clinic: M W F Lamang',
+    bannerDoctors: '',
+    bannerDental: 'Dental Clinic: Huwebes-Biyernes, 7:00 AM - 4:00 PM',
 
 
-    heroTitle: 'Mayor Moises R. Flores Health Center',
-    heroSubtitle: 'Naglilingkod sa San Pedro, Magtanggol, at Tabacalera. Nag-aalok ng maternity, nutrition (BNS 0-59 buwan OPT), dental (M-W-F), animal bite, check-up, 3rd floor X-ray clinic, at libreng gamot sa maintenance.',
+    heroTitle: 'Delfin Salonga Health Center',
+    heroSubtitle: 'Naglilingkod sa Sto. Rosario-Kanluran at Sto. Rosario-Silangan sa Pateros. Kabilang sa mga serbisyo ang konsultasyon, family planning, pangangalaga bago at pagkatapos manganak, immunization, dental, TB-DOTS, Pen meds, at Pap smear.',
     heroCtaPrimary: 'Magpa-iskedyul ng Outreach',
     heroCtaSecondary: 'Tingnan ang Serbisyo',
 
 
     servicesTitle: 'Mga Serbisyo ng Health Center',
-    servicesSubtitle: 'Mga programa at serbisyong medikal sa Mayor Moises R. Flores Health Center.',
-    serviceTabAll: 'Lahat',
-    serviceTabMaternal: 'Maternity / Buntis',
-    serviceTabNutrition: 'Nutrisyon (BNS)',
-    serviceTabDental: 'Dental (M-W-F)',
-    serviceTabRabies: 'Animal Bite',
-    serviceTabOPD: 'Check Up',
-    serviceTabXray: 'X-RAY CLINIC (3rd Floor)',
-    serviceTabMeds: 'Mga Gamot',
+    servicesSubtitle: 'Mga serbisyong medikal na ibinibigay ng Delfin Salonga Health Center.',
     labelSchedule: 'Oras / Iskedyul',
     labelLocation: 'Lugar',
     labelPersonnel: 'Mga Kawani',
@@ -195,19 +153,10 @@ export const translations = {
     btnViewRequirements: 'Detalye',
 
 
-    medsTitle: 'Mga Gamot na Mayroon (Meds)',
-    medsSubtitle: 'High blood maintenance, Diabetics, at TB program.',
-    filterAllMeds: 'Lahat ng Gamot',
-    filterHypertension: 'High Blood',
-    filterDiabetes: 'Diabetics',
-    filterTB: 'TB Program',
-
-
     zonesTitle: 'Zones na Sakop',
-    zonesSubtitle: '1. San Pedro, 2. Magtanggol, 3. Tabacalera.',
-    zoneSanPedro: '1. San Pedro',
-    zoneMagtanggol: '2. Magtanggol',
-    zoneTabacalera: '3. Tabacalera',
+    zonesSubtitle: 'Sto. Rosario-Kanluran at Sto. Rosario-Silangan.',
+    zoneKanluran: 'Sto. Rosario-Kanluran',
+    zoneSilangan: 'Sto. Rosario-Silangan',
     labelAssignedBNS: 'Barangay Nutrition Scholars (BNS)',
     labelAssignedMidwife: 'Kumadrona',
     labelAssignedNurse: 'Nars',
@@ -215,14 +164,13 @@ export const translations = {
     labelActiveResidents: 'Rehistradong Pasyente',
 
 
-    staffTitle: 'Mga Doktor at Pangkat Pangkalusugan',
-    staffSubtitle: 'Alamin ang iskedyul at lokasyon ng mga doktor at kawani.',
+    staffTitle: 'Mga Kawani ng Klinika',
+    staffSubtitle: 'Inililista sa pampublikong talaan ang mga kawani ng klinika at kanilang mga tungkulin.',
     staffSearchPlaceholder: 'Maghanap gamit ang pangalan o posisyon...',
     deptAll: 'Lahat ng Kawani',
     deptDoctors: 'Mga Doktor',
     deptNutrition: 'Nutrisyon (BNS)',
     deptDental: 'Dental Clinic',
-    deptRadiology: 'X-Ray at Lab',
     deptNursing: 'Nars at Kumadrona',
     deptAdmin: 'Admin at Suporta',
     labelDutyHours: 'Iskedyul',
@@ -258,7 +206,7 @@ export const translations = {
     portalTitle: 'Patient Portal',
     portalSubtitle: 'Talaan ng kalusugan at pag-message sa kawani.',
     tabRecords: 'Rekord ng Vitals',
-    tabPrescriptions: 'Maintenance Meds',
+    tabPrescriptions: 'Mga Reseta',
     tabMessaging: 'Chat sa Staff',
     labelPatientNo: 'Patient ID',
     labelDemographics: 'Impormasyon',
@@ -269,15 +217,7 @@ export const translations = {
 
 
     analyticsTitle: 'Estadistika ng Health Center',
-    analyticsSubtitle: 'Pagsubaybay sa serbisyo, bawat zone, at suplay ng gamot.',
-    kpiConsultations: 'Buwanang Konsultasyon',
-    kpiSatisfaction: 'Kuntento sa Serbisyo',
-    kpiOptScreening: 'Naabot sa OPT',
-    kpiMedsDispensed: 'Gamot na Naipamahagi',
-    chartZoneFootfall: 'Pasyente Bawat Zone',
-    chartServiceVolume: 'Dami ng Serbisyo',
-    chartNutritionStatus: 'Nutrisyon ng Bata (0-59 Buwan)',
-    chartInventoryStatus: 'Suplay ng Gamot',
+    analyticsSubtitle: 'Lalabas dito ang mga beripikadong estadistika ng klinika kapag mayroon na.',
 
 
     contactTitle: 'Makipag-ugnayan sa Center',
@@ -290,15 +230,9 @@ export const translations = {
     contactFormMessage: 'Mensahe',
     btnSendInquiry: 'Ipadala ang Mensahe',
     inquirySuccess: 'Natanggap na ang katanungan.',
-    hotlineTitle: 'Mahahalagang Numero',
-    hotlinePateros: 'Pateros Municipal Rescue: (02) 8642-5159',
-    hotlineAnimalBite: 'Animal Bite Hotline: (02) 8641-7640',
-    hotlineHealthCenter: 'Telepono ng Center: (02) 8642-1923',
-
-
-    footerDescription: 'Naglilingkod sa San Pedro, Magtanggol, at Tabacalera sa Pateros.',
+    footerDescription: 'Naglilingkod sa Sto. Rosario-Kanluran at Sto. Rosario-Silangan sa Pateros.',
     footerQuickLinks: 'Mabilisang Link',
-    footerHoursNotice: 'Lunes hanggang Biyernes: 7:00 AM - 4:00 PM | Clinic Hours: Lunes 8AM - 3PM, Martes - Biyernes 9AM - 3PM.',
-    copyright: 'Mayor Moises R. Flores Health Center · Pateros.'
+    footerHoursNotice: 'Duty ng medical staff: Lunes-Biyernes, 7:00 AM - 4:00 PM.',
+    copyright: 'Delfin Salonga Health Center · Pateros.'
   }
 };

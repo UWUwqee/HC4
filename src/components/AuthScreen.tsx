@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SignIn, useSignUp } from '@clerk/react';
 import { Eye, EyeOff, X } from 'lucide-react';
-import centerPhoto from '../assets/images/MR FLORES.png';
+import centerPhoto from '../assets/images/DELFIN.png';
 import { formatPhilippinePhoneNumber, isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../philippinePhone';
 
 const USERNAME_PATTERN = /^[a-z][a-z0-9_]{2,19}$/;
@@ -361,9 +361,9 @@ export const AuthScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </button>
         <div className="border-b border-zinc-200 px-4 py-4 sm:px-8 sm:py-5">
           <div className="flex items-center gap-3">
-            <img src={centerPhoto} alt="Mayor Moises R. Flores Health Center" className="h-12 w-12 rounded-full border border-zinc-200 object-cover" />
+            <img src={centerPhoto} alt="Delfin Salonga Health Center" className="h-12 w-12 rounded-full border border-zinc-200 object-cover" />
             <div>
-              <div className="text-sm font-bold text-zinc-900">Mayor Moises R. Flores Pateros</div>
+              <div className="text-sm font-bold text-zinc-900">Delfin Salonga</div>
               <div className="mt-0.5 text-xs text-zinc-600">Health Center</div>
             </div>
           </div>

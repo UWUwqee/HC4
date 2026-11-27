@@ -4,7 +4,7 @@ import { AlertCircle, CalendarDays, Check, CheckCircle2, ChevronLeft, Clock3, Lo
 import { AdminCalendar, SlotSetting, SlotSettingsForm } from './AdminCalendar';
 import { AdminContentManager } from './AdminContentManager';
 import { formatAppointmentTime, getAppointmentTimeMinutes } from '../appointmentSchedule';
-import centerPhoto from '../assets/images/MR FLORES.png';
+import centerPhoto from '../assets/images/DELFIN.png';
 
 interface AppointmentRow {
   id: string;
@@ -45,7 +45,6 @@ const priorityCategoryLabels = {
   pwd: 'Person with disability (PWD)',
   senior_citizen: 'Senior citizen',
   pregnant_lactating: 'Pregnant or lactating',
-  animal_bite: 'Animal Bite (urgent rabies vaccination)',
 };
 
 function getPriorityCategoryLabels(value: string) {

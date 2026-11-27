@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { COVERAGE_AREAS } from '../data/delfinSalongaClinicInfo';
+import type { PatientRecord } from '../types';
 import {
   UserCheck,
   Plus,
@@ -14,6 +16,13 @@ import {
   Calendar,
   CheckCircle2
 } from 'lucide-react';
+
+const PATIENT_CATEGORY_OPTIONS: Array<{ value: PatientRecord['category']; label: string }> = [
+  { value: 'general', label: 'General care' },
+  { value: 'maternal', label: 'Maternal care' },
+  { value: 'pediatric', label: 'Pediatric care' },
+  { value: 'tb_dots', label: 'TB-DOTS' },
+];
 
 export const PatientPortal: React.FC = () => {
   const {
@@ -37,10 +46,10 @@ export const PatientPortal: React.FC = () => {
   const [regName, setRegName] = useState('');
   const [regDob, setRegDob] = useState('1990-01-01');
   const [regGender, setRegGender] = useState('Female');
-  const [regZone, setRegZone] = useState('2. Magtanggol');
+  const [regZone, setRegZone] = useState(COVERAGE_AREAS[0]);
   const [regPhone, setRegPhone] = useState('+63 9');
   const [regPhilHealth, setRegPhilHealth] = useState('');
-  const [regCategory, setRegCategory] = useState<'maternal' | 'senior_maintenance' | 'pediatric_opt'>('maternal');
+  const [regCategory, setRegCategory] = useState<PatientRecord['category']>('general');
 
 
   const [showAddVitals, setShowAddVitals] = useState(false);
@@ -52,9 +61,9 @@ export const PatientPortal: React.FC = () => {
 
 
   const [showAddRx, setShowAddRx] = useState(false);
-  const [medName, setMedName] = useState('Amlodipine (High blood)');
-  const [medDosage, setMedDosage] = useState('5mg Tablet');
-  const [medFreq, setMedFreq] = useState('Once daily');
+  const [medName, setMedName] = useState('');
+  const [medDosage, setMedDosage] = useState('');
+  const [medFreq, setMedFreq] = useState('');
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +110,9 @@ export const PatientPortal: React.FC = () => {
     });
 
     setShowAddRx(false);
+    setMedName('');
+    setMedDosage('');
+    setMedFreq('');
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -155,8 +167,8 @@ export const PatientPortal: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-600 mt-1">
                     {language === 'fil'
-                      ? 'Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa San Pedro, Magtanggol, o Tabacalera.'
-                      : 'Register a patient record or select from saved patient records in San Pedro, Magtanggol, or Tabacalera.'}
+                      ? `Magrehistro ng bagong rekord o pumili mula sa mga nai-save na pasyente sa ${COVERAGE_AREAS.join(' o ')}.`
+                      : `Register a patient record or select from saved patient records in ${COVERAGE_AREAS.join(' or ')}.`}
                   </p>
                 </div>
 
@@ -261,9 +273,7 @@ export const PatientPortal: React.FC = () => {
                       onChange={(e) => setRegZone(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700"
                     >
-                      <option value="1. San Pedro">1. San Pedro</option>
-                      <option value="2. Magtanggol">2. Magtanggol</option>
-                      <option value="3. Tabacalera">3. Tabacalera</option>
+                      {COVERAGE_AREAS.map((area) => <option key={area} value={area}>{area}</option>)}
                     </select>
                   </div>
 
@@ -273,12 +283,15 @@ export const PatientPortal: React.FC = () => {
                     </label>
                     <select
                       value={regCategory}
-                      onChange={(e) => setRegCategory(e.target.value as any)}
+                      onChange={(e) => {
+                        const selected = PATIENT_CATEGORY_OPTIONS.find(({ value }) => value === e.target.value);
+                        if (selected) setRegCategory(selected.value);
+                      }}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700"
                     >
-                      <option value="maternal">Maternity / Pregnant</option>
-                      <option value="senior_maintenance">High Blood / Diabetics / TB</option>
-                      <option value="pediatric_opt">Nutrition (0-59 months OPT)</option>
+                      {PATIENT_CATEGORY_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -303,6 +316,7 @@ export const PatientPortal: React.FC = () => {
                     </label>
                     <input
                       type="text"
+                      required
                       value={regPhilHealth}
                       onChange={(e) => setRegPhilHealth(e.target.value)}
                       placeholder="Optional"
@@ -351,7 +365,7 @@ export const PatientPortal: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-teal-800 bg-white border border-teal-200 px-2.5 py-1 rounded">
-                  {activePatient.category === 'maternal' ? 'Maternity' : (activePatient.category === 'senior_maintenance' ? 'Maintenance' : 'Nutrition')}
+                  {PATIENT_CATEGORY_OPTIONS.find(({ value }) => value === activePatient.category)?.label ?? 'General care'}
                 </span>
               </div>
             </div>
@@ -527,17 +541,14 @@ export const PatientPortal: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-slate-600 mb-1">Medication</label>
-                        <select
+                        <input
+                          required
+                          type="text"
                           value={medName}
                           onChange={(e) => setMedName(e.target.value)}
+                          placeholder="Medication name"
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded"
-                        >
-                          <option value="Amlodipine (High blood)">Amlodipine (High blood)</option>
-                          <option value="Losartan (High blood)">Losartan (High blood)</option>
-                          <option value="Metformin (Diabetics)">Metformin (Diabetics)</option>
-                          <option value="Gliclazide (Diabetics)">Gliclazide (Diabetics)</option>
-                          <option value="TB-DOTS Regimen (TB Program)">TB-DOTS Regimen (TB Program)</option>
-                        </select>
+                        />
                       </div>
                       <div>
                         <label className="block text-slate-600 mb-1">Dosage Form</label>
@@ -591,14 +602,13 @@ export const PatientPortal: React.FC = () => {
                         <div className="text-slate-600">{rx.dosage} · {rx.frequency}</div>
                         <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100 flex justify-between">
                           <span>Refill: {rx.nextRefillDate}</span>
-                          <span>Dr. Tiffany Almuros</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
-                    No active prescriptions added. Click "Add Prescription" to add your high blood, diabetes, or TB medications.
+                    No prescriptions have been added. Use "Add Prescription" to record medication instructions.
                   </div>
                 )}
               </div>
@@ -608,7 +618,7 @@ export const PatientPortal: React.FC = () => {
             {activeTab === 'messaging' && (
               <div className="rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col h-[400px]">
                 <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-700 flex justify-between items-center">
-                  <span>Mr. Flores Health Center Desk (Mon-Fri 7AM-4PM)</span>
+                  <span>Delfin Salonga Health Center Desk (Mon-Fri 7AM-4PM)</span>
                   <span className="text-[10px] text-slate-500">{activePatient.zone}</span>
                 </div>
 

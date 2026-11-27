@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth, useUser } from '@clerk/react';
 import { HealthCenterProvider, useHealthCenter } from './context/HealthCenterContext';
 import { Header } from './components/Header';
@@ -7,18 +6,17 @@ import { Hero } from './components/Hero';
 import { RouteFinder } from './components/RouteFinder';
 import { ServicesSection } from './components/ServicesSection';
 import { PublicInformation } from './components/PublicInformation';
+import { PatientFlow } from './components/PatientFlow';
 import { AppointmentSchedule } from './components/AppointmentSchedule';
 import { Footer } from './components/Footer';
 import { OutreachBookingModal } from './components/OutreachBookingModal';
-import { CheckCircle2, Clock3, MessageCircleMore, X } from 'lucide-react';
+import { CheckCircle2, Clock3, MessageCircleMore } from 'lucide-react';
 import { AuthScreen } from './components/AuthScreen';
 import { AdminPanel } from './components/AdminPanel';
 import { UserAppointmentChat } from './components/UserAppointmentChat';
-import patientFlowDiagram from './assets/images/DIAGRAM xd.png';
 import { AccessibilityProvider } from './context/AccessibilityContext';
 
 const AppContent: React.FC = () => {
-  const [patientFlowOpen, setPatientFlowOpen] = useState(false);
   const {
     activeSection,
     notificationToast,
@@ -32,20 +30,6 @@ const AppContent: React.FC = () => {
     unreadAdminMessageCount,
     unreadMessagesError,
   } = useHealthCenter();
-
-  useEffect(() => {
-    if (!patientFlowOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPatientFlowOpen(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [patientFlowOpen]);
 
   useEffect(() => {
     const handleStatusChange = (event: Event) => {
@@ -112,24 +96,7 @@ const AppContent: React.FC = () => {
           <>
             <Hero />
             <RouteFinder />
-            <section aria-label="Patient flow diagram" className="site-section-bg section-enter border-t border-[#dce7e1] py-8 sm:py-10">
-              <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-                <button
-                  type="button"
-                  onClick={() => setPatientFlowOpen(true)}
-                  aria-label="View patient flow diagram at full size"
-                  className="group mx-auto block w-full max-w-6xl cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#17645c]"
-                >
-                  <img
-                    src={patientFlowDiagram}
-                    alt="Patient flow and visit information: registration, initial screening, consultation and follow-up, and clinic-specific visit guidance."
-                    loading="lazy"
-                    decoding="async"
-                    className="block h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-                  />
-                </button>
-              </div>
-            </section>
+            <PatientFlow />
           </>
         )}
       </main>
@@ -139,26 +106,6 @@ const AppContent: React.FC = () => {
       {isSignedIn && <UserAppointmentChat />}
       <OutreachBookingModal />
       {authModalOpen && <AuthScreen onClose={() => setAuthModalOpen(false)} />}
-      {patientFlowOpen && createPortal(
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Patient flow diagram"
-          className="fixed inset-0 z-[70] flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-slate-950/90 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-8"
-          onMouseDown={(event) => { if (event.target === event.currentTarget) setPatientFlowOpen(false); }}
-        >
-          <button type="button" onClick={() => setPatientFlowOpen(false)} aria-label="Close patient flow diagram" className="absolute right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={patientFlowDiagram}
-            alt="Patient flow and visit information: registration, initial screening, consultation and follow-up, and clinic-specific visit guidance."
-            className="block h-auto w-auto max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] max-w-[calc(100vw-2rem)] object-contain"
-          />
-        </div>,
-        document.body,
-      )}
-
       {notificationToast && (
         <div className="fixed bottom-5 right-5 z-50 bg-[#0f4d3c] text-white px-4 py-3 rounded-md shadow-lg border border-white/10 text-sm font-semibold flex items-center gap-2 max-w-sm animate-fade-in">
           <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
@@ -207,8 +154,8 @@ export default function App() {
         setAccountRole(data.role);
         setRoleError('');
         if (data.role === 'admin') {
-          sessionStorage.removeItem('mfhc_booking_after_signin');
-          sessionStorage.removeItem('mfhc_booking_program');
+          sessionStorage.removeItem('health_center_booking_after_signin');
+          sessionStorage.removeItem('health_center_booking_program');
         }
         if (data.role === 'user' && window.location.pathname === '/admin') {
           window.history.replaceState(null, '', '/');

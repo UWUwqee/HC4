@@ -57,7 +57,7 @@ const HealthCenterContext = createContext<HealthCenterContextType | undefined>(u
 export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { getToken, isSignedIn } = useAuth();
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('mfhc_language');
+    const saved = localStorage.getItem('health_center_language');
     return (saved === 'fil' || saved === 'en') ? saved : 'en';
   });
 
@@ -89,19 +89,19 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [siteContentError, setSiteContentError] = useState('');
   const [unreadAdminMessageCount, setUnreadAdminMessageCount] = useState(0);
   const [unreadMessagesError, setUnreadMessagesError] = useState('');
-  const [selectedProgramForBooking, setSelectedProgramForBooking] = useState<string | null>(() => sessionStorage.getItem('mfhc_booking_program'));
+  const [selectedProgramForBooking, setSelectedProgramForBooking] = useState<string | null>(() => sessionStorage.getItem('health_center_booking_program'));
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
   const previousAppointmentStatuses = useRef(new Map<string, string>());
 
   useEffect(() => {
-    localStorage.setItem('mfhc_language', language);
+    localStorage.setItem('health_center_language', language);
     document.documentElement.lang = language === 'fil' ? 'fil' : 'en';
   }, [language]);
 
   const setAuthModalOpen = (open: boolean) => {
     if (!open) {
-      sessionStorage.removeItem('mfhc_booking_after_signin');
-      sessionStorage.removeItem('mfhc_booking_program');
+      sessionStorage.removeItem('health_center_booking_after_signin');
+      sessionStorage.removeItem('health_center_booking_program');
       setSelectedProgramForBooking(null);
     }
     setAuthModalOpenState(open);
@@ -111,11 +111,11 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!open) {
       setBookingModalOpen(false);
       setSelectedProgramForBooking(null);
-      sessionStorage.removeItem('mfhc_booking_program');
+      sessionStorage.removeItem('health_center_booking_program');
       return;
     }
     if (!isSignedIn) {
-      sessionStorage.setItem('mfhc_booking_after_signin', 'true');
+      sessionStorage.setItem('health_center_booking_after_signin', 'true');
       setAuthModalOpenState(true);
       return;
     }
@@ -165,9 +165,9 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
             ? 'pending'
             : statuses.includes('confirmed') ? 'confirmed' : 'available';
           setAppointmentRequestAvailability(availability);
-          if (sessionStorage.getItem('mfhc_booking_after_signin') === 'true') {
-            sessionStorage.removeItem('mfhc_booking_after_signin');
-            sessionStorage.removeItem('mfhc_booking_program');
+          if (sessionStorage.getItem('health_center_booking_after_signin') === 'true') {
+            sessionStorage.removeItem('health_center_booking_after_signin');
+            sessionStorage.removeItem('health_center_booking_program');
             if (availability === 'available') setBookingModalOpen(true);
           }
         }
@@ -479,7 +479,7 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
       prescribedDate: new Date().toISOString().split('T')[0],
       nextRefillDate: 'Next Month (30-day supply)',
       status: 'Available for Pick-up' as const,
-      prescribedBy: 'Tiffany Almuros (Head of Doctors)'
+      prescribedBy: 'Clinic Physician'
     };
 
     void authorizedPost('/api/health-data', { resource: 'prescription', patientId, ...entry }).catch(() => setNotificationToast('Prescription could not be saved to the database.'));
@@ -526,8 +526,8 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const botReply: ChatMessage = {
         id: `m-${Date.now() + 1}`,
         sender: 'staff',
-        senderName: 'Ms. Sery Ann G. Ulanday, RN / Clinic Desk',
-        senderRole: 'Mr. Flores Health Center',
+        senderName: 'Clinic Staff',
+        senderRole: 'Delfin Salonga Health Center',
         text: language === 'fil'
           ? `Natanggap po namin ang mensahe para sa ${activePatient.fullName} (${activePatient.zone}). Bukas ang center Lunes hanggang Biyernes 7AM-4PM.`
           : `We received your inquiry for ${activePatient.fullName} (${activePatient.zone}). The center is open Monday to Friday, 7:00 AM - 4:00 PM.`,
@@ -566,7 +566,7 @@ export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const openBookingForProgram = (programId: string) => {
     if (appointmentRequestAvailability !== 'available') return;
     setSelectedProgramForBooking(programId);
-    if (!isSignedIn) sessionStorage.setItem('mfhc_booking_program', programId);
+    if (!isSignedIn) sessionStorage.setItem('health_center_booking_program', programId);
     setBookingAvailabilityModal(true);
   };
 

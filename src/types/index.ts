@@ -4,7 +4,6 @@ export type Department =
   | 'doctors'
   | 'nutrition_bns'
   | 'dental'
-  | 'radiology_lab'
   | 'nursing_midwifery'
   | 'admin_support';
 
@@ -32,7 +31,15 @@ export interface ServiceDetail {
   shortDescFil: string;
   fullDesc: string;
   fullDescFil: string;
-  category: 'maternity' | 'nutrition' | 'dental' | 'animal_bite' | 'checkup' | 'xray' | 'pharmacy';
+  category:
+    | 'maternity'
+    | 'dental'
+    | 'checkup'
+    | 'family_planning'
+    | 'immunization'
+    | 'tb_dots'
+    | 'pen_meds'
+    | 'pap_smear';
   schedule: string;
   scheduleFil: string;
   location: string;
@@ -42,36 +49,6 @@ export interface ServiceDetail {
   image?: string;
   badge?: string;
   badgeFil?: string;
-}
-
-export interface MedicationStock {
-  id: string;
-  name: string;
-  dosage: string;
-  category: 'hypertension' | 'diabetes' | 'tb';
-  categoryLabel: string;
-  categoryLabelFil: string;
-  purpose: string;
-  purposeFil: string;
-  stockStatus: 'In Stock' | 'Moderate' | 'Critical';
-  availableUnits: number;
-  refillSchedule: string;
-  refillScheduleFil: string;
-  requirements: string;
-  requirementsFil: string;
-}
-
-export interface ZoneCoverage {
-  id: 'san_pedro' | 'magtanggol' | 'tabacalera';
-  name: string;
-  poblacion: string;
-  assignedBNS: string[];
-  assignedMidwife: string;
-  designatedNurse: string;
-  communityOutreachDays: string;
-  communityOutreachDaysFil: string;
-  activePatients: number;
-  coverageRate: string;
 }
 
 export interface OutreachProgram {
@@ -88,7 +65,7 @@ export interface OutreachProgram {
   slotsRemaining: number;
   eligibility: string;
   eligibilityFil: string;
-  category: 'opt' | 'dental' | 'xray_tb' | 'maintenance_refill' | 'maternal' | 'rabies';
+  category: string;
 }
 
 export interface AppointmentBooking {
@@ -130,8 +107,6 @@ export interface ClinicPublicSettings {
   clinicHoursFil: string;
   doctorHours: string;
   doctorHoursFil: string;
-  xrayHours: string;
-  xrayHoursFil: string;
   dentalHours: string;
   dentalHoursFil: string;
   clinicAddress: string;
@@ -169,7 +144,7 @@ export interface PatientRecord {
   zone: string;
   contactNumber: string;
   philHealthNo: string;
-  category: 'maternal' | 'senior_maintenance' | 'pediatric_opt';
+  category: 'general' | 'maternal' | 'pediatric' | 'tb_dots';
   vitalsHistory: Array<{
     date: string;
     bloodPressure: string;
@@ -199,16 +174,6 @@ export interface PatientRecord {
     impression: string;
     status: 'Official Report Ready';
   }>;
-  nutritionProfile?: {
-    ageMonths: number;
-    weightKg: number;
-    heightCm: number;
-    zScoreWeightForAge: string;
-    classification: 'Normal' | 'Underweight' | 'Severe Underweight' | 'Obese' | 'Stunted';
-    bnsEvaluator: string;
-    optRecordedQuarter: string;
-    supplementationRecommended: string;
-  };
 }
 
 export interface ChatMessage {

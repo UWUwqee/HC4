@@ -90,6 +90,61 @@ function appointmentsApiDevPlugin(): Plugin {
           response.end(JSON.stringify({ error: 'Invalid request body.' }));
         }
       });
+      server.middlewares.use('/api/website-assistant', async (request, response, next) => {
+        const apiRequest = request as typeof request & { body?: unknown };
+        if (request.method === 'POST') {
+          const chunks: Buffer[] = [];
+          let size = 0;
+          try {
+            for await (const chunk of request) {
+              const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+              size += buffer.length;
+              if (size > 8_192) {
+                request.resume();
+                response.statusCode = 413;
+                response.setHeader('Content-Type', 'application/json');
+                response.end(JSON.stringify({ error: 'Question is too large.' }));
+                return;
+              }
+              chunks.push(buffer);
+            }
+          } catch (error) {
+            next(error);
+            return;
+          }
+          try {
+            apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          } catch (error) {
+            if (!(error instanceof SyntaxError)) {
+              next(error);
+              return;
+            }
+            response.statusCode = 400;
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify({ error: 'Invalid assistant request.' }));
+            return;
+          }
+        }
+
+        const apiResponse = response as typeof response & {
+          status: (code: number) => typeof response;
+          json: (body: unknown) => void;
+        };
+        apiResponse.status = (code) => {
+          response.statusCode = code;
+          return response;
+        };
+        apiResponse.json = (body) => {
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify(body));
+        };
+        try {
+          const { default: handler } = await server.ssrLoadModule('/api/website-assistant.ts');
+          await handler(apiRequest, apiResponse);
+        } catch (error) {
+          next(error);
+        }
+      });
     },
   };
 }

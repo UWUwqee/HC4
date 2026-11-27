@@ -12,6 +12,7 @@ import {
   getEarliestAppointmentDate,
   isAppointmentTimeAvailable,
 } from '../src/appointmentSchedule.js';
+import { COVERAGE_AREAS } from '../src/data/delfinSalongaClinicInfo.js';
 
 type ApiRequest = IncomingMessage & { body?: unknown; headers: IncomingMessage['headers'] & { authorization?: string } };
 type ApiResponse = ServerResponse & {
@@ -19,7 +20,7 @@ type ApiResponse = ServerResponse & {
   json: (body: unknown) => void;
 };
 
-const zones = new Set(['San Pedro', 'Magtanggol', 'Tabacalera']);
+const zones = new Set<string>(COVERAGE_AREAS);
 const preferredTimes = new Set(APPOINTMENT_TIME_SLOTS);
 const priorityCategoryOptions = new Set(['pwd', 'senior_citizen', 'pregnant_lactating']);
 const guardianRelationships = new Set(['Parent', 'Legal guardian', 'Other guardian']);
@@ -372,7 +373,6 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     const service = JSON.parse(String(serviceResult.rows[0].content_json)) as { title?: unknown; category?: unknown };
     const serviceName = typeof service.title === 'string' ? service.title.trim().slice(0, 160) : '';
     if (!serviceName) return response.status(400).json({ error: 'The selected service is not configured for appointment requests.' });
-    if (service.category === 'animal_bite') priorityCategories.push('animal_bite');
     const transaction = await db.transaction('write');
     try {
       const activeAppointment = await transaction.execute({

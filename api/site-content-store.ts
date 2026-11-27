@@ -57,13 +57,30 @@ export async function ensureSiteContent(db: ReturnType<typeof createClient>) {
       ...NEWS_UPDATES.map((value) => ({ type: 'news' as const, id: value.id, value })),
       ...OUTREACH_PROGRAMS.map((value) => ({ type: 'outreach' as const, id: value.id, value })),
     ];
+    const seedTypes = ['service', 'news', 'outreach'] as const;
+    const obsoleteSeedStatements = seedTypes.map((type) => {
+      const currentIds = seeds.filter((seed) => seed.type === type).map((seed) => seed.id);
+      return {
+        sql: `DELETE FROM public_site_content
+              WHERE content_type = ? AND updated_by = 'system-seed'
+              ${currentIds.length ? `AND content_id NOT IN (${currentIds.map(() => '?').join(', ')})` : ''}`,
+        args: [type, ...currentIds],
+      };
+    });
     await db.batch([
       ...seeds.map(({ type, id, value }) => ({
-        sql: `INSERT OR IGNORE INTO public_site_content
-              (content_type, content_id, content_json, published, updated_at, updated_by)
-              VALUES (?, ?, ?, 1, ?, 'system-seed')`,
+        sql: `INSERT INTO public_site_content
+              (content_type, content_id, content_json, published, deleted, updated_at, updated_by)
+              VALUES (?, ?, ?, 1, 0, ?, 'system-seed')
+              ON CONFLICT(content_type, content_id) DO UPDATE SET
+                content_json = excluded.content_json,
+                published = 1,
+                deleted = 0,
+                updated_at = excluded.updated_at
+              WHERE public_site_content.updated_by = 'system-seed'`,
         args: [type, id, JSON.stringify(value), now],
       })),
+      ...obsoleteSeedStatements,
       ...Object.entries(DEFAULT_CLINIC_PUBLIC_SETTINGS).map(([key, value]) => ({
         sql: `INSERT INTO clinic_public_settings
               (setting_key, setting_value, updated_at, updated_by) VALUES (?, ?, ?, 'system-seed')
@@ -72,18 +89,6 @@ export async function ensureSiteContent(db: ReturnType<typeof createClient>) {
               WHERE clinic_public_settings.updated_by = 'system-seed'`,
         args: [key, String(value), now],
       })),
-      {
-        sql: `UPDATE clinic_public_settings
-              SET setting_value = ?, updated_at = ?, updated_by = 'system-seed'
-              WHERE setting_key = 'contactPhone'
-                AND (setting_value IN (?, ?) OR setting_value LIKE '%8424 8370%')`,
-        args: [
-          DEFAULT_CLINIC_PUBLIC_SETTINGS.contactPhone,
-          now,
-          '(02) 8642-5159',
-          '+63 (2) 8643 3486 and +63 (2) 643 3486 / 8424 8370',
-        ],
-      },
     ], 'write');
   })().catch((error: unknown) => {
     initialized = null;
@@ -143,7 +148,16 @@ export function validateSiteContent(
     if (typeof value[field] !== 'string' || value[field].length > 5000) return null;
   }
   if (contentType === 'service') {
-    if (!['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy'].includes(String(value.category))) return null;
+    if (![
+      'checkup',
+      'family_planning',
+      'maternity',
+      'immunization',
+      'dental',
+      'tb_dots',
+      'pen_meds',
+      'pap_smear',
+    ].includes(String(value.category))) return null;
     for (const field of ['keyPersonnel', 'requirements', 'requirementsFil']) {
       if (!Array.isArray(value[field]) || value[field].length > 50
         || value[field].some((entry) => typeof entry !== 'string' || entry.length > 300)) return null;
@@ -153,7 +167,7 @@ export function validateSiteContent(
     if (value.imageUrl !== undefined && value.imageUrl !== ''
       && (typeof value.imageUrl !== 'string' || !/^\/api\/content-image\?id=[0-9a-f-]{36}$/i.test(value.imageUrl))) return null;
   } else {
-    if (!['opt', 'dental', 'xray_tb', 'maintenance_refill', 'maternal', 'rabies'].includes(String(value.category))
+    if (!String(value.category).trim()
       || !Number.isInteger(value.capacity) || Number(value.capacity) < 0 || Number(value.capacity) > 10000
       || !Number.isInteger(value.slotsRemaining) || Number(value.slotsRemaining) < 0 || Number(value.slotsRemaining) > 10000) return null;
   }

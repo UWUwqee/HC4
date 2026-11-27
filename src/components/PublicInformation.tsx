@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Megaphone, Stethoscope } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarDays, Clock3, Mail, MapPin, Megaphone, Phone, Stethoscope } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { BackToHomeButton } from './BackToHomeButton';
+import { CLINIC_SCHEDULE } from '../data/delfinSalongaClinicInfo';
 
 export const PublicInformation: React.FC = () => {
   const { language, siteContent, siteContentError } = useHealthCenter();
   const isFilipino = language === 'fil';
-  const featuredServices = siteContent.services.slice(0, 5);
+  const featuredServices = siteContent.services;
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
+  const dayNames = isFilipino
+    ? { Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miyerkules', Thursday: 'Huwebes', Friday: 'Biyernes' }
+    : { Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday', Friday: 'Friday' };
   const [viewingImage, setViewingImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
@@ -41,6 +45,21 @@ export const PublicInformation: React.FC = () => {
             </h2>
           </div>
         </div>
+
+        <section className="rounded-xl border border-white/15 bg-white/5 p-4 sm:p-5">
+          <h3 className="mb-3 text-lg font-bold text-white">
+            {isFilipino ? 'Lingguhang iskedyul ng serbisyo' : 'Weekly service schedule'}
+          </h3>
+          <ul className="bullet-list my-0 text-sm leading-6 text-emerald-50">
+            {CLINIC_SCHEDULE.map((schedule) => (
+              <li key={schedule.day}>
+                <strong>{dayNames[schedule.day]}</strong>
+                {' · AM: '}{schedule.am}
+                {' · PM: '}{schedule.pm}
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
 
       <div className="w-full bg-[#0b3f32] px-5 py-5 shadow-lg shadow-[#0b3f32]/15 sm:px-8 sm:py-8 lg:px-12">
@@ -110,14 +129,19 @@ export const PublicInformation: React.FC = () => {
             )}
           </section>
 
-          <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           <section className="min-w-0">
             <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Clock3 className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
             <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
-              <li><strong>{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</strong></li>
-              <li>{isFilipino ? settings.doctorHoursFil : settings.doctorHours}</li>
-              <li>{isFilipino ? settings.xrayHoursFil : settings.xrayHours}</li>
-              <li>{isFilipino ? settings.dentalHoursFil : settings.dentalHours}</li>
+              {[settings.clinicHours, settings.doctorHours, settings.dentalHours]
+                .map((value, index) => ({
+                  value: isFilipino
+                    ? [settings.clinicHoursFil, settings.doctorHoursFil, settings.dentalHoursFil][index]
+                    : value,
+                  key: index,
+                }))
+                .filter((item) => item.value.trim())
+                .map((item) => <li key={item.key}>{item.value}</li>)}
             </ul>
           </section>
 
@@ -137,6 +161,33 @@ export const PublicInformation: React.FC = () => {
                 {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-sm text-emerald-100 lg:text-xs"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
               </ul>
             ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
+          </section>
+
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Phone className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Makipag-ugnayan' : 'Contact'}</h3>
+            <div className="space-y-2 text-base text-emerald-50 lg:text-sm">
+              {settings.contactPhone && /\d/.test(settings.contactPhone) && (
+                <a href={`tel:${settings.contactPhone.replace(/[^\d+]/g, '')}`} className="flex items-start gap-2 underline underline-offset-2">
+                  <Phone className="mt-1 h-4 w-4 shrink-0" />{settings.contactPhone}
+                </a>
+              )}
+              {settings.contactEmail && (
+                <a href={`mailto:${settings.contactEmail}`} className="flex items-start gap-2 break-all underline underline-offset-2">
+                  <Mail className="mt-1 h-4 w-4 shrink-0" />{settings.contactEmail}
+                </a>
+              )}
+              {!(settings.contactPhone && /\d/.test(settings.contactPhone)) && !settings.contactEmail && (
+                <p>{isFilipino ? 'Walang nakalistang pampublikong numero o email sa ngayon.' : 'No public phone number or email is currently listed.'}</p>
+              )}
+              {(isFilipino ? settings.emergencyPhoneFil : settings.emergencyPhone) && (
+                <p className="pt-1">
+                  <strong>{isFilipino ? 'Emergency:' : 'Emergency:'}</strong>{' '}
+                  <a href={`tel:${(isFilipino ? settings.emergencyPhoneFil : settings.emergencyPhone).replace(/[^\d+]/g, '')}`} className="underline underline-offset-2">
+                    {isFilipino ? settings.emergencyPhoneFil : settings.emergencyPhone}
+                  </a>
+                </p>
+              )}
+            </div>
           </section>
           </div>
         </div>

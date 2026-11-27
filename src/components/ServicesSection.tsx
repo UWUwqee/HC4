@@ -3,33 +3,31 @@ import { createPortal } from 'react-dom';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { BackToHomeButton } from './BackToHomeButton';
 import { ServiceDetail } from '../types';
-import { Activity, ArrowRight, Baby, Clock, Heart, MapPin, Pill, ShieldAlert, Smile, Stethoscope, X } from 'lucide-react';
-import animalBiteImage from '../assets/images/ANIMAL BITE.jpg';
-import bnsImage from '../assets/images/BNS.png';
+import { ArrowRight, Clock, Heart, MapPin, Smile, Stethoscope, X } from 'lucide-react';
 import checkupImage from '../assets/images/CHECK UP.jpg';
-import dentalImage from '../assets/images/DENTAL CLINIC.jpg';
+import dentalImage from '../assets/images/DENTAL SERVICE.jpg';
+import familyPlanningImage from '../assets/images/FAMILYPLANNING.jpg';
+import immunizationImage from '../assets/images/IMMUNIZATION.png';
 import maternityImage from '../assets/images/MATERNITY.png';
-import medicinesImage from '../assets/images/MEDS.jpg';
-import xrayImage from '../assets/images/XRAY.jpg';
+import papSmearImage from '../assets/images/PAP SMEAR.png';
+import penMedsImage from '../assets/images/PEN MEDS.jpg';
+import tbDotsImage from '../assets/images/TB DOTS.png';
 
 const serviceImages: Partial<Record<ServiceDetail['category'], string>> = {
-  animal_bite: animalBiteImage,
-  nutrition: bnsImage,
   checkup: checkupImage,
   dental: dentalImage,
+  family_planning: familyPlanningImage,
+  immunization: immunizationImage,
   maternity: maternityImage,
-  pharmacy: medicinesImage,
-  xray: xrayImage,
+  pap_smear: papSmearImage,
+  pen_meds: penMedsImage,
+  tb_dots: tbDotsImage,
 };
 
 const illustrationForService = (category: string) => {
   switch (category) {
     case 'maternity': return { Icon: Heart, color: 'bg-rose-50 text-rose-700', accent: 'bg-rose-200/70' };
-    case 'nutrition': return { Icon: Baby, color: 'bg-amber-50 text-amber-700', accent: 'bg-amber-200/70' };
     case 'dental': return { Icon: Smile, color: 'bg-sky-50 text-sky-700', accent: 'bg-sky-200/70' };
-    case 'animal_bite': return { Icon: ShieldAlert, color: 'bg-orange-50 text-orange-700', accent: 'bg-orange-200/70' };
-    case 'pharmacy': return { Icon: Pill, color: 'bg-violet-50 text-violet-700', accent: 'bg-violet-200/70' };
-    case 'xray': return { Icon: Activity, color: 'bg-cyan-50 text-cyan-800', accent: 'bg-cyan-200/70' };
     default: return { Icon: Stethoscope, color: 'bg-emerald-50 text-emerald-800', accent: 'bg-emerald-200/70' };
   }
 };

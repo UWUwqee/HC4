@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { CalendarDays, ArrowDown, Clock3, MapPin, PhoneCall } from 'lucide-react';
-import centerPhoto from '../assets/images/MR FLORES.png';
+import centerPhoto from '../assets/images/DELFIN.png';
 
 const getPhoneLink = (phone: string) => {
   const digits = phone.replace(/\D/g, '');
@@ -11,7 +11,7 @@ const getPhoneLink = (phone: string) => {
 };
 
 export const Hero: React.FC = () => {
-  const { language, setActiveSection, setBookingModalOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
+  const { t, language, setActiveSection, setBookingModalOpen, appointmentRequestAvailability, siteContent } = useHealthCenter();
   const clinicAddress = language === 'fil' ? siteContent.settings.clinicAddressFil : siteContent.settings.clinicAddress;
   const clinicHours = language === 'fil' ? siteContent.settings.clinicHoursFil : siteContent.settings.clinicHours;
   const clinicPhone = siteContent.settings.contactPhone;
@@ -25,7 +25,7 @@ export const Hero: React.FC = () => {
   return (
     <section id="overview" className="hero-section-enter bg-[#0f4d3c] text-white">
       <div className="relative flex min-h-[340px] items-center overflow-hidden border-b border-white/10 sm:min-h-[360px] lg:min-h-[320px]">
-        <img src={centerPhoto} alt="Mayor Moises R. Flores Health Center" className="absolute inset-0 w-full h-full object-cover object-center" />
+        <img src={centerPhoto} alt={t.brand} className="absolute inset-0 w-full h-full object-cover object-center" />
         <div className="absolute inset-0 bg-[#0f4d3c]/88" />
         <div className="relative mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 sm:py-16 lg:px-12 lg:py-12">
           <div className="absolute right-5 top-4 flex items-center gap-1.5 rounded-md border border-emerald-200/50 bg-emerald-950/60 px-2.5 py-1.5 text-[10px] font-bold leading-tight text-white shadow-lg sm:right-8 sm:top-6 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs lg:right-12" role="status">
@@ -35,7 +35,7 @@ export const Hero: React.FC = () => {
           <div className="grid items-center gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)] lg:gap-12">
             <div className="mx-auto w-full max-w-3xl text-center lg:mx-0 lg:text-left">
               <h1 className="hero-enter mx-auto max-w-3xl text-3xl font-bold leading-[1.08] text-white sm:text-4xl lg:mx-0 lg:text-[40px]">
-                Mayor Moises R. Flores Health Center
+                {t.heroTitle}
               </h1>
               <div className="hero-actions mt-5 grid grid-cols-1 gap-3 sm:flex sm:justify-center lg:justify-start">
                 {bookingEnabled && <button onClick={() => setBookingModalOpen(true)} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm border border-white bg-white px-5 py-3 text-sm font-bold text-[#0f4d3c] transition-colors hover:bg-[#eaf3ee] sm:w-auto">
@@ -65,31 +65,37 @@ export const Hero: React.FC = () => {
                 </div>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-white/85">
-                {language === 'fil'
-                  ? 'Tumawag sa aming kawani para matulungan ka sa pag-book ng appointment.'
-                  : 'Call our staff and we can help you book an appointment.'}
+                {clinicPhones.length
+                  ? (language === 'fil'
+                    ? 'Tumawag sa aming kawani para matulungan ka sa pag-book ng appointment.'
+                    : 'Call our staff and we can help you book an appointment.')
+                  : (language === 'fil'
+                    ? 'Gamitin ang online form upang magpadala ng appointment request. Walang nakalistang numero ng klinika.'
+                    : 'Use the online form to send an appointment request. No clinic phone number is listed.')}
               </p>
-              <div className="mt-4 rounded-md bg-white px-3 py-1 text-[#0f4d3c]">
-                {clinicPhones.map((phone, index) => (
-                  <React.Fragment key={phone}>
-                    {index > 0 && (
-                      <div className="flex items-center gap-2 py-1 text-xs font-semibold text-slate-500">
-                        <span className="h-px flex-1 bg-slate-200" />
-                        {language === 'fil' ? 'o' : 'or'}
-                        <span className="h-px flex-1 bg-slate-200" />
-                      </div>
-                    )}
-                    <a
-                      href={`tel:${getPhoneLink(phone)}`}
-                      aria-label={`${language === 'fil' ? 'Tumawag sa' : 'Call'} ${phone}`}
-                      className="flex min-h-9 items-center justify-center gap-2 px-1 text-sm font-bold transition-colors hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
-                    >
-                      <PhoneCall className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {language === 'fil' ? 'Tumawag sa' : 'Call'} {phone}
-                    </a>
-                  </React.Fragment>
-                ))}
-              </div>
+              {clinicPhones.length > 0 && (
+                <div className="mt-4 rounded-md bg-white px-3 py-1 text-[#0f4d3c]">
+                  {clinicPhones.map((phone, index) => (
+                    <React.Fragment key={phone}>
+                      {index > 0 && (
+                        <div className="flex items-center gap-2 py-1 text-xs font-semibold text-slate-500">
+                          <span className="h-px flex-1 bg-slate-200" />
+                          {language === 'fil' ? 'o' : 'or'}
+                          <span className="h-px flex-1 bg-slate-200" />
+                        </div>
+                      )}
+                      <a
+                        href={`tel:${getPhoneLink(phone)}`}
+                        aria-label={`${language === 'fil' ? 'Tumawag sa' : 'Call'} ${phone}`}
+                        className="flex min-h-9 items-center justify-center gap-2 px-1 text-sm font-bold transition-colors hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+                      >
+                        <PhoneCall className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {language === 'fil' ? 'Tumawag sa' : 'Call'} {phone}
+                      </a>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
             </aside>
           </div>
         </div>

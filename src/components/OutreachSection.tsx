@@ -131,7 +131,7 @@ export const OutreachSection: React.FC = () => {
                 </h3>
                 <p className="text-xs text-slate-500">
                   {language === 'fil'
-                    ? 'Ipakita ang reference code sa triage desk pagdating sa Mr. Flores Health Center.'
+                    ? 'Ipakita ang reference code sa registration desk pagdating sa Delfin Salonga Health Center.'
                     : 'Present this reference ticket at the health center registration desk on arrival.'}
                 </p>
               </div>

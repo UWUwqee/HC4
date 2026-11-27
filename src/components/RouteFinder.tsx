@@ -39,10 +39,10 @@ type RouteInfo = {
 
 type RouteFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.LineString>;
 
-const destination: L.LatLngTuple = [14.5472886, 121.0659399];
-const routingDestination: L.LatLngTuple = [14.5472631, 121.0665727];
-const destinationName = 'Mayor Moises R. Flores Memorial Health Center';
-const destinationAddress = 'P. Herrera Street, Barangay San Pedro, Pateros, Metro Manila, Philippines';
+const destination: L.LatLngTuple = [14.5508576, 121.0704430];
+const routingDestination: L.LatLngTuple = [14.5508576, 121.0704430];
+const destinationName = 'Delfin Salonga Health Center';
+const destinationAddress = 'Emerald Avenue, Emerald Subdivision, Brgy. Santo Rosario, Pateros, Metro Manila';
 const wazeUrl = `https://www.waze.com/ul?ll=${routingDestination[0]}%2C${routingDestination[1]}&navigate=yes`;
 const routingProfiles: Record<TravelMode, string> = {
   walking: 'routed-foot',
@@ -496,7 +496,7 @@ export const RouteFinder: React.FC = () => {
         if (routeEndAccessDistance > 40) {
           throw new Error('The health center is too far from the nearest mapped road. Please report this map issue.');
         }
-        if (endAccessDistance > 150) throw new Error('The health center is too far from its P. Herrera Street access point. Please report this map issue.');
+        if (endAccessDistance > 150) throw new Error('The health center is too far from its mapped access point. Please report this map issue.');
         const accessFeatures: GeoJSON.FeatureCollection<GeoJSON.LineString> = { type: 'FeatureCollection', features: [] };
         if (startAccessDistance > 5 && startAccessDistance <= maximumStartSnapDistance) accessFeatures.features.push({
           type: 'Feature',

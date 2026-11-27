@@ -34,7 +34,7 @@ const fieldsByType: Record<ContentType, Field[]> = {
     { key: 'shortDescFil', label: 'Short description (Filipino)', multiline: true },
     { key: 'fullDesc', label: 'Full details (English)', multiline: true },
     { key: 'fullDescFil', label: 'Full details (Filipino)', multiline: true },
-    { key: 'category', label: 'Category', options: ['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy'] },
+    { key: 'category', label: 'Category', options: ['checkup', 'family_planning', 'maternity', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'] },
     { key: 'schedule', label: 'Schedule (English)', multiline: true },
     { key: 'scheduleFil', label: 'Schedule (Filipino)', multiline: true },
     { key: 'location', label: 'Location' },
@@ -57,7 +57,7 @@ const fieldsByType: Record<ContentType, Field[]> = {
     { key: 'slotsRemaining', label: 'Available slots', number: true },
     { key: 'eligibility', label: 'Eligibility (English)', multiline: true },
     { key: 'eligibilityFil', label: 'Eligibility (Filipino)', multiline: true },
-    { key: 'category', label: 'Category', options: ['opt', 'dental', 'xray_tb', 'maintenance_refill', 'maternal', 'rabies'] },
+    { key: 'category', label: 'Category' },
   ],
 };
 
@@ -66,8 +66,6 @@ const settingsFields: Array<{ key: keyof ClinicPublicSettings; label: string; mu
   { key: 'clinicHoursFil', label: 'General clinic hours (Filipino)' },
   { key: 'doctorHours', label: 'Doctor hours (English)', multiline: true },
   { key: 'doctorHoursFil', label: 'Doctor hours (Filipino)', multiline: true },
-  { key: 'xrayHours', label: 'X-ray hours (English)' },
-  { key: 'xrayHoursFil', label: 'X-ray hours (Filipino)' },
   { key: 'dentalHours', label: 'Dental hours (English)' },
   { key: 'dentalHoursFil', label: 'Dental hours (Filipino)' },
   { key: 'clinicAddress', label: 'Clinic address (English)' },
@@ -94,7 +92,7 @@ function emptyContent(type: ContentType): ContentRecord {
   return {
     title: '', titleFil: '', description: '', descriptionFil: '', targetBarangay: '',
     scheduleDate: '', timeWindow: '', location: '', capacity: 0, slotsRemaining: 0,
-    eligibility: '', eligibilityFil: '', category: 'opt',
+    eligibility: '', eligibilityFil: '', category: 'Community',
   };
 }
 

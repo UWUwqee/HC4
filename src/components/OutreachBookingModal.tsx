@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useHealthCenter } from '../context/HealthCenterContext';
+import { COVERAGE_AREAS } from '../data/delfinSalongaClinicInfo';
 import { AlertCircle, CalendarDays, CheckCircle2, Clock, X } from 'lucide-react';
 import { useAuth, useUser } from '@clerk/react';
 import { formatPhilippinePhoneNumber, isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../philippinePhone';
@@ -69,7 +70,7 @@ export const OutreachBookingModal: React.FC = () => {
   const [guardianConsent, setGuardianConsent] = useState(false);
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [priorityCategories, setPriorityCategories] = useState<string[]>([]);
-  const [zone, setZone] = useState('San Pedro');
+  const [zone, setZone] = useState(COVERAGE_AREAS[0]);
   const [now, setNow] = useState(() => new Date());
   const [preferredDate, setPreferredDate] = useState(() => getEarliestAppointmentDate());
   const [preferredTime, setPreferredTime] = useState('09:00');
@@ -90,13 +91,11 @@ export const OutreachBookingModal: React.FC = () => {
   const earliestDate = getEarliestAppointmentDate(now);
   const latestDate = getLatestAppointmentDate(now);
   const selectedService = services.find((service) => service.id === serviceId);
-  const isAnimalBiteService = selectedService?.category === 'animal_bite';
   const isSenior = age !== '' && Number(age) >= 60;
   const isMinor = age !== '' && Number(age) <= 17;
   const effectivePriorityCategories = Array.from(new Set([
     ...priorityCategories,
     ...(isSenior ? ['senior_citizen'] : []),
-    ...(isAnimalBiteService ? ['animal_bite'] : []),
   ]));
   const address = [houseApartmentNumber.trim(), streetName.trim()].filter(Boolean).join(', ');
   const dateBlocked = slotSettings.some((setting) => setting.date === preferredDate && setting.time === 'all_day' && setting.blocked);
@@ -170,7 +169,7 @@ export const OutreachBookingModal: React.FC = () => {
       setGuardianConsent(false);
       setChiefComplaint('');
       setPriorityCategories([]);
-      setZone('San Pedro');
+      setZone(COVERAGE_AREAS[0]);
       setPrivacyConsent(false);
       setAttendanceConsent(false);
       setArrivalConsent(false);
@@ -272,7 +271,9 @@ export const OutreachBookingModal: React.FC = () => {
               setGuardianConsent(false);
               setChiefComplaint(previousAppointment.chief_complaint);
               setPriorityCategories(priorPriorityCategories);
-              setZone(previousAppointment.zone);
+              setZone(COVERAGE_AREAS.includes(previousAppointment.zone)
+                ? previousAppointment.zone
+                : COVERAGE_AREAS[0]);
               if (!selectedProgramForBooking
                 && previousAppointment.service_id
                 && services.some((service) => service.id === previousAppointment.service_id)) {
@@ -391,7 +392,7 @@ export const OutreachBookingModal: React.FC = () => {
           guardianRelationship: isMinor ? guardianRelationship : '',
           guardianConsent: isMinor && guardianConsent,
           chiefComplaint,
-          priorityCategories: effectivePriorityCategories.filter((category) => category !== 'animal_bite'),
+          priorityCategories: effectivePriorityCategories,
           zone,
           serviceId,
           preferredDate,
@@ -450,7 +451,7 @@ export const OutreachBookingModal: React.FC = () => {
       <section role="dialog" aria-modal="true" aria-labelledby="appointment-title" className="my-0 max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-2xl overflow-y-auto bg-white shadow-2xl sm:my-5 sm:max-h-[92vh]">
         <header className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:gap-5 sm:px-7 sm:py-5">
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-teal-800">Mayor Moises R. Flores Health Center</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-teal-800">Delfin Salonga Health Center</div>
             <h2 id="appointment-title" className="mt-1 text-lg font-bold text-slate-950 sm:text-2xl">{receipt ? (receipt.status === 'confirmed' ? (isFilipino ? 'Kumpirmado ang appointment' : 'Appointment confirmed') : (isFilipino ? 'Natanggap ang request' : 'Request received')) : (isFilipino ? 'Online appointment request' : 'Request an appointment')}</h2>
             {!receipt && <p className="mt-1 text-xs leading-relaxed text-slate-600 sm:text-sm">{isFilipino ? 'Ilagay ang iyong detalye at napiling schedule.' : 'Enter your details and preferred schedule.'}</p>}
           </div>
@@ -576,7 +577,7 @@ export const OutreachBookingModal: React.FC = () => {
               <div>
                 <label htmlFor="appointment-zone" className="mb-1 block text-sm font-semibold text-slate-800">{t.formZone} *</label>
                 <select id="appointment-zone" required value={zone} onChange={(event) => setZone(event.target.value)} className="min-h-12 w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-700">
-                  <option>San Pedro</option><option>Magtanggol</option><option>Tabacalera</option>
+                  {COVERAGE_AREAS.map((area) => <option key={area} value={area}>{area}</option>)}
                 </select>
               </div>
               <div>
@@ -622,13 +623,6 @@ export const OutreachBookingModal: React.FC = () => {
               )}
               <fieldset className="sm:col-span-2 rounded-md border border-slate-300 p-3">
                 <legend className="px-1 text-sm font-semibold text-slate-800">{isFilipino ? 'Priority category (opsyonal; piliin lahat ng naaangkop)' : 'Priority category (optional; select all that apply)'}</legend>
-                {isAnimalBiteService && (
-                  <p className="mb-2 rounded-md border border-orange-200 bg-orange-50 p-3 text-sm font-medium text-orange-900">
-                    {isFilipino
-                      ? 'Awtomatikong priority appointment ang Animal Bite dahil mahalaga ang agarang anti-rabies vaccination. Pumunta rin agad sa klinika para sa pagsusuri.'
-                      : 'Animal Bite is automatically prioritized because timely rabies vaccination is important. Please also visit the clinic promptly for assessment.'}
-                  </p>
-                )}
                 <div className="grid gap-2 sm:grid-cols-3">
                   {priorityCategoryOptions.map(({ value, label }) => (
                     <label
