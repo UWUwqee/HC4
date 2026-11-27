@@ -114,32 +114,36 @@ const CustomSignUpForm: React.FC = () => {
       return;
     }
 
-    const { error } = await signUp.password({
-      username,
-      password,
-      firstName,
-      lastName: surname,
-      unsafeMetadata: {
-        middleName,
-        gender,
-        contactNumber: formatPhilippinePhoneNumber(contactNumber),
-        ...(suffix.trim() ? { suffix: suffix.trim() } : {}),
-      },
-    });
-    if (error) {
-      setRequestError(error.message);
-      return;
-    }
+    try {
+      const { error } = await signUp.password({
+        username,
+        password,
+        firstName,
+        lastName: surname,
+        unsafeMetadata: {
+          middleName,
+          gender,
+          contactNumber: formatPhilippinePhoneNumber(contactNumber),
+          ...(suffix.trim() ? { suffix: suffix.trim() } : {}),
+        },
+      });
+      if (error) {
+        setRequestError(error.message);
+        return;
+      }
 
-    if (signUp.status !== 'complete') {
-      setRequestError(
-        'Clerk requires additional signup fields or verification. Enable username signup and disable required email verification in Clerk settings.',
-      );
-      return;
-    }
+      if (signUp.status !== 'complete') {
+        setRequestError(
+          'Clerk requires additional signup fields or verification. Enable username signup and disable required email verification in Clerk settings.',
+        );
+        return;
+      }
 
-    const finalization = await signUp.finalize();
-    if (finalization.error) setRequestError(finalization.error.message);
+      const finalization = await signUp.finalize();
+      if (finalization.error) setRequestError(finalization.error.message);
+    } catch (caught) {
+      setRequestError(caught instanceof Error ? caught.message : 'Account creation failed. Please try again.');
+    }
   };
 
   const usernameFormatError = username && !USERNAME_PATTERN.test(username) ? USERNAME_HINT : undefined;
@@ -283,7 +287,7 @@ const CustomSignUpForm: React.FC = () => {
           Passwords match.
         </p>
       )}
-      {requestError && <p role="alert" className="text-sm text-rose-600">{requestError}</p>}
+      {requestError && requestError !== passwordError && <p role="alert" className="text-sm text-rose-600">{requestError}</p>}
       <div id="clerk-captcha" />
       <button
         type="submit"

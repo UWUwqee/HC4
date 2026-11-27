@@ -65,8 +65,11 @@ export async function ensureSiteContent(db: ReturnType<typeof createClient>) {
         args: [type, id, JSON.stringify(value), now],
       })),
       ...Object.entries(DEFAULT_CLINIC_PUBLIC_SETTINGS).map(([key, value]) => ({
-        sql: `INSERT OR IGNORE INTO clinic_public_settings
-              (setting_key, setting_value, updated_at, updated_by) VALUES (?, ?, ?, 'system-seed')`,
+        sql: `INSERT INTO clinic_public_settings
+              (setting_key, setting_value, updated_at, updated_by) VALUES (?, ?, ?, 'system-seed')
+              ON CONFLICT(setting_key) DO UPDATE SET
+                setting_value = excluded.setting_value, updated_at = excluded.updated_at
+              WHERE clinic_public_settings.updated_by = 'system-seed'`,
         args: [key, String(value), now],
       })),
       {

@@ -24,7 +24,7 @@ interface UserMessage {
   created_at: string;
 }
 
-const WEBSITE_ASSISTANT_ACKNOWLEDGMENT = 'Got your message! Thanks for reaching out. Our Pateros HealthConnect assistant will reply any minute with information based on published health center listings.';
+const WEBSITE_ASSISTANT_ACKNOWLEDGMENT = 'Thanks for your question. I’m checking the clinic’s published website information and will reply shortly. / Salamat sa tanong mo. Sinusuri ko ang nailathalang impormasyon ng klinika at sasagot ako agad.';
 
 const isAutomatedReminder = (message: UserMessage) => message.sender_role === 'admin'
   && (message.message.startsWith('This is an automated reminder.')
@@ -42,7 +42,7 @@ const getDisplayMessage = (message: string) => {
 
 export const UserAppointmentChat: React.FC = () => {
   const { getToken } = useAuth();
-  const { messagesOpen, setMessagesOpen, markAppointmentMessagesRead } = useHealthCenter();
+  const { language, messagesOpen, setMessagesOpen, markAppointmentMessagesRead } = useHealthCenter();
   const [appointments, setAppointments] = useState<UserAppointment[]>([]);
   const [messages, setMessages] = useState<UserMessage[]>([]);
   const [optimisticMessage, setOptimisticMessage] = useState<UserMessage | null>(null);
@@ -53,6 +53,7 @@ export const UserAppointmentChat: React.FC = () => {
   const [requestedReferenceCode, setRequestedReferenceCode] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState('');
+  const [aiConsent, setAiConsent] = useState(false);
   const conversationRef = useRef<HTMLDivElement>(null);
 
   const loadChat = async () => {
@@ -112,6 +113,7 @@ export const UserAppointmentChat: React.FC = () => {
 
   const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
   const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
+  const isFilipino = language === 'fil';
   const visibleMessages = useMemo(() => {
     let visible = selectedMessages;
     const optimisticIsSelected = optimisticMessage?.appointment_id === selectedId;
@@ -141,6 +143,10 @@ export const UserAppointmentChat: React.FC = () => {
   }, [messagesOpen, selected?.id, latestSelectedMessageId, markAppointmentMessagesRead]);
 
   useEffect(() => {
+    if (!messagesOpen) setAiConsent(false);
+  }, [messagesOpen]);
+
+  useEffect(() => {
     if (!messagesOpen || !selected) return;
     const conversation = conversationRef.current;
     if (conversation) conversation.scrollTop = conversation.scrollHeight;
@@ -148,10 +154,16 @@ export const UserAppointmentChat: React.FC = () => {
 
   if (!messagesOpen) return null;
 
-  const sendAssistantMessage = async (event: FormEvent) => {
+  const sendAssistantMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const question = draft.trim();
     if (!selected || !question || assistantLoading) return;
+    if (!aiConsent) {
+      setAssistantError(isFilipino
+        ? 'Basahin at tanggapin muna ang paalala bago gamitin ang AI support.'
+        : 'Please accept the AI support notice before sending a question.');
+      return;
+    }
     setError('');
     setAssistantError('');
     setAssistantLoading(true);
@@ -171,19 +183,17 @@ export const UserAppointmentChat: React.FC = () => {
       const response = await fetch('/api/website-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ appointmentId: selected.id, question, clientMessageId }),
+        body: JSON.stringify({ appointmentId: selected.id, question, clientMessageId, aiConsent }),
       });
       const responseBody = await response.text();
-      let result: { error?: string } = {};
+      let result: { error?: string; notice?: string } = {};
       try {
-        result = JSON.parse(responseBody) as { error?: string };
+        result = JSON.parse(responseBody) as { error?: string; notice?: string };
       } catch {
-        if (response.ok) throw new Error('The website assistant returned an invalid response. Please try again.');
-      }
-      if (!response.ok && !result.error) {
-        throw new Error(`The website assistant is temporarily unavailable (HTTP ${response.status}). Please try again.`);
+        throw new Error(`The website assistant could not answer right now (HTTP ${response.status}).`);
       }
       if (!response.ok) throw new Error(result.error || 'The website assistant could not respond.');
+      if (result.notice) setAssistantError(result.notice);
       await loadChat();
     } catch (caught) {
       setDraft(question);
@@ -251,10 +261,21 @@ export const UserAppointmentChat: React.FC = () => {
                 </div>
                 {selected.chat_status === 'open' ? (
                   <div className="shrink-0 border-t border-[#e7ece9] bg-white px-3 py-1.5 sm:px-4">
-                    {assistantError && <p role="alert" className="mb-2 text-xs text-rose-800">{assistantError}</p>}
+                    <p className="mb-1.5 text-[10px] leading-relaxed text-[#66736f]">
+                      {isFilipino
+                        ? 'Sasagot ang assistant batay sa nailathalang impormasyon ng website lamang, hindi ito payong medikal. Huwag magpadala ng pangalan, detalye ng appointment, contact o impormasyong pangkalusugan. Kung kailangan, maaaring iproseso ng OpenRouter o Gemini ang iyong tanong.'
+                        : 'The assistant uses published website information only and does not provide medical advice. Do not include names, appointment details, contact or health information. If needed, OpenRouter or Gemini may process your question.'}
+                    </p>
+                    <label className="mb-2 flex items-start gap-2 text-[10px] leading-relaxed text-[#43534d]">
+                      <input type="checkbox" checked={aiConsent} onChange={(event) => setAiConsent(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-teal-800" />
+                      <span>{isFilipino
+                        ? 'Nauunawaan ko na maaaring iproseso ng OpenRouter o Gemini ang aking tanong at hindi ako magbabahagi ng personal o pangkalusugang detalye.'
+                        : 'I understand OpenRouter or Gemini may process my question, and I will not share personal or health details.'}</span>
+                    </label>
+                    {assistantError && <p role="alert" className="mb-1.5 text-xs text-rose-800">{assistantError}</p>}
                     <form onSubmit={sendAssistantMessage} className="flex items-center gap-2">
-                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1200} placeholder="Ask about the health center website" className="h-9 min-w-0 flex-1 rounded-full border border-[#d8e0db] bg-[#f7f9f8] px-3.5 text-xs outline-none transition-colors placeholder:text-[#9aa59f] focus:border-[#17645c] focus:bg-white" />
-                      <button type="submit" disabled={!draft.trim() || assistantLoading} aria-label="Send question to website assistant" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white transition-colors hover:bg-[#124f49] disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-3.5 w-3.5" /></button>
+                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1200} placeholder={isFilipino ? 'Magtanong tungkol sa website ng health center' : 'Ask about the health center website'} aria-label={isFilipino ? 'Tanong para sa website assistant' : 'Question for the website assistant'} className="h-9 min-w-0 flex-1 rounded-full border border-[#d8e0db] bg-[#f7f9f8] px-3.5 text-xs outline-none transition-colors placeholder:text-[#9aa59f] focus:border-[#17645c] focus:bg-white" />
+                      <button type="submit" disabled={!draft.trim() || !aiConsent || assistantLoading} aria-label={isFilipino ? 'Ipadala ang tanong' : 'Send question to website assistant'} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white transition-colors hover:bg-[#124f49] disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-3.5 w-3.5" /></button>
                     </form>
                   </div>
                 ) : <div className="shrink-0 border-t border-[#e7ece9] bg-white px-4 py-3 text-center text-xs font-semibold text-[#66736f]">This chat has been closed by clinic staff</div>}

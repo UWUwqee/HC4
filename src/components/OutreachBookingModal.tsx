@@ -222,6 +222,7 @@ export const OutreachBookingModal: React.FC = () => {
             preferred_time: string;
             status: string;
             created_at: string;
+            service_id?: string;
             patient_name: string;
             phone: string;
             address: string;
@@ -272,6 +273,11 @@ export const OutreachBookingModal: React.FC = () => {
               setChiefComplaint(previousAppointment.chief_complaint);
               setPriorityCategories(priorPriorityCategories);
               setZone(previousAppointment.zone);
+              if (!selectedProgramForBooking
+                && previousAppointment.service_id
+                && services.some((service) => service.id === previousAppointment.service_id)) {
+                setServiceId(previousAppointment.service_id);
+              }
             }
             hasPrefilledAppointmentDetails.current = true;
           }
@@ -291,7 +297,7 @@ export const OutreachBookingModal: React.FC = () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, [bookingModalOpen, getToken]);
+  }, [bookingModalOpen, getToken, selectedProgramForBooking, services]);
 
   if (!bookingModalOpen) return null;
 
