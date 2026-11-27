@@ -17,6 +17,8 @@ export const OutreachSection: React.FC = () => {
   const bookingEnabled = appointmentRequestAvailability === 'available';
   const bookingLabel = appointmentRequestAvailability === 'pending'
     ? 'Appointment under review'
+    : appointmentRequestAvailability === 'confirmed'
+      ? 'Accepted appointment active'
     : appointmentRequestAvailability === 'checking'
       ? 'Checking request status'
       : appointmentRequestAvailability === 'error'
@@ -24,14 +26,16 @@ export const OutreachSection: React.FC = () => {
         : 'REQUEST AN APPOINTMENT';
 
   return (
-    <section id="outreach" className="border-b border-slate-200 bg-white py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+    <section id="outreach" className="py-16 bg-white border-b border-slate-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="max-w-3xl space-y-2">
-            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2c7a5f]">
+            <div className="text-xs font-bold text-teal-800 uppercase tracking-wider">
               {language === 'fil' ? 'Programang Pangkomunidad' : 'Community Health Campaigns'}
             </div>
-            <h2 className="text-3xl font-bold text-[#0f4d3c]" style={{ textWrap: 'balance' }}>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight" style={{ textWrap: 'balance' }}>
               {t.outreachTitle}
             </h2>
             <p className="text-sm text-slate-600">
@@ -42,18 +46,19 @@ export const OutreachSection: React.FC = () => {
           <button
             disabled={!bookingEnabled}
             onClick={() => setBookingModalOpen(true)}
-            className="flex items-center gap-2 self-start rounded-md bg-[#0f4d3c] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#2c7a5f] disabled:cursor-not-allowed disabled:opacity-50 md:self-auto"
+            className="px-5 py-2.5 text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-sm transition-colors flex items-center gap-2 cursor-pointer self-start md:self-auto disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="w-4 h-4" />
             <span>{bookingLabel}</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {siteContent.outreach.map((program) => (
             <div
               key={program.id}
-              className="flex flex-col justify-between border border-[#d9e3dd] bg-[#f8faf9] p-6 transition-all hover:border-[#9bbdad]"
+              className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col justify-between hover:border-slate-300 transition-all shadow-xs"
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-xs">
@@ -126,7 +131,7 @@ export const OutreachSection: React.FC = () => {
                 </h3>
                 <p className="text-xs text-slate-500">
                   {language === 'fil'
-                    ? 'Ipakita ang reference code sa triage desk pagdating sa Delfin Salonga Health Center.'
+                    ? 'Ipakita ang reference code sa triage desk pagdating sa Mr. Flores Health Center.'
                     : 'Present this reference ticket at the health center registration desk on arrival.'}
                 </p>
               </div>

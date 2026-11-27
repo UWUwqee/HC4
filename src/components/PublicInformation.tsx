@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, CalendarDays, Clock3, MapPin, Megaphone, Stethoscope, Users } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarDays, Clock3, MapPin, Megaphone, Stethoscope } from 'lucide-react';
 import { useHealthCenter } from '../context/HealthCenterContext';
-import { CLINIC_SCHEDULE, STAFF_ROSTER } from '../data/delfinSalongaClinicInfo';
 import { BackToHomeButton } from './BackToHomeButton';
 
 export const PublicInformation: React.FC = () => {
@@ -12,14 +11,6 @@ export const PublicInformation: React.FC = () => {
   const updates = siteContent.news.slice(0, 3);
   const outreach = siteContent.outreach.slice(0, 3);
   const settings = siteContent.settings;
-  const holidayAdvisory = (isFilipino ? settings.holidayAdvisoryFil : settings.holidayAdvisory).trim()
-    || (isFilipino ? 'Tiyakin ang operasyon ng klinika bago bumisita tuwing holiday.' : 'Verify clinic operations before visiting on holidays.');
-  const clinicHours = [
-    isFilipino ? settings.clinicHoursFil : settings.clinicHours,
-    isFilipino ? settings.doctorHoursFil : settings.doctorHours,
-    isFilipino ? settings.xrayHoursFil : settings.xrayHours,
-    isFilipino ? settings.dentalHoursFil : settings.dentalHours,
-  ].filter((hours) => hours.trim());
   const [viewingImage, setViewingImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
@@ -43,18 +34,20 @@ export const PublicInformation: React.FC = () => {
         <BackToHomeButton />
         <div className="breadcrumb">Home <span aria-hidden="true">/</span> <span className="font-semibold text-[#0f4d3c]">Information</span></div>
         <div className="mb-6">
-          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[#2c7a5f]">Clinic information</div>
-          <h2 className="text-2xl font-bold text-[#0f4d3c] sm:text-3xl">
-            {isFilipino ? 'Kasalukuyang impormasyon' : 'Current information'}
-          </h2>
+          <div>
+            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[#2c7a5f]">Clinic information</div>
+            <h2 className="text-2xl font-bold text-[#0f4d3c] sm:text-3xl">
+              {isFilipino ? 'Kasalukuyang impormasyon' : 'Current information'}
+            </h2>
+          </div>
         </div>
       </div>
 
       <div className="w-full bg-[#0b3f32] px-5 py-5 shadow-lg shadow-[#0b3f32]/15 sm:px-8 sm:py-8 lg:px-12">
-        <div className="holiday-advisory" role="note">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
-          <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {holidayAdvisory}</div>
-        </div>
+          <div className="holiday-advisory" role="note">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <div><strong>{isFilipino ? 'Pabatid sa holiday:' : 'Holiday advisory:'}</strong> {isFilipino ? settings.holidayAdvisoryFil : settings.holidayAdvisory}</div>
+          </div>
 
         <div className="space-y-8">
           <section>
@@ -118,71 +111,36 @@ export const PublicInformation: React.FC = () => {
           </section>
 
           <div className="accessibility-dark-details mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-            <section className="min-w-0">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg">
-                <Clock3 className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}
-              </h3>
-              <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
-                {clinicHours.map((hours) => <li key={hours}>{hours}</li>)}
-              </ul>
-            </section>
-
-            <section className="min-w-0">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg">
-                <Stethoscope className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Mga serbisyo' : 'Services overview'}
-              </h3>
-              {featuredServices.length > 0 ? (
-                <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
-                  {featuredServices.map((service) => <li key={service.id}><strong>{isFilipino ? service.titleFil : service.title}</strong>{service.badge ? ` · ${isFilipino ? service.badgeFil : service.badge}` : ''}</li>)}
-                </ul>
-              ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang nailathalang serbisyo.' : 'No services have been published yet.'}</p>}
-            </section>
-
-            <section className="min-w-0">
-              <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg">
-                <CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}
-              </h3>
-              {outreach.length > 0 ? (
-                <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
-                  {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-sm text-emerald-100 lg:text-xs"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
-                </ul>
-              ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
-            </section>
-
-          </div>
-
-          <section className="grid gap-8 border-t border-white/20 pt-6 lg:grid-cols-2">
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
-                <Users className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Mga kawani ng klinika' : 'Clinic staff'}
-              </h3>
-              <ul className="grid gap-3 text-sm leading-6 text-emerald-50 sm:grid-cols-2">
-                {STAFF_ROSTER.map((person) => (
-                  <li key={`${person.name}-${person.role}`}>
-                    <strong>{person.name}</strong><span className="block text-xs text-emerald-100">{person.role}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
-                <CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Iskedyul ng serbisyo' : 'Service schedule'}
-              </h3>
-              <div className="grid gap-3 text-sm text-emerald-50 sm:grid-cols-2">
-                {CLINIC_SCHEDULE.map((entry) => (
-                  <div key={entry.day} className="border-t border-white/20 pt-3">
-                    <p className="font-bold text-white">{entry.day}</p>
-                    <p><strong>AM (7 AM - 11 AM):</strong> {entry.am}</p>
-                    <p><strong>PM (12 PM - 4 PM):</strong> {entry.pm}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Clock3 className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Oras ng klinika' : 'Clinic hours'}</h3>
+            <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+              <li><strong>{isFilipino ? settings.clinicHoursFil : settings.clinicHours}</strong></li>
+              <li>{isFilipino ? settings.doctorHoursFil : settings.doctorHours}</li>
+              <li>{isFilipino ? settings.xrayHoursFil : settings.xrayHours}</li>
+              <li>{isFilipino ? settings.dentalHoursFil : settings.dentalHours}</li>
+            </ul>
           </section>
+
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><Stethoscope className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Mga serbisyo' : 'Services overview'}</h3>
+            {featuredServices.length > 0 ? (
+              <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+                {featuredServices.map((service) => <li key={service.id}><strong>{isFilipino ? service.titleFil : service.title}</strong>{service.badge ? ` · ${service.badge}` : ''}</li>)}
+              </ul>
+            ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang nailathalang serbisyo.' : 'No services have been published yet.'}</p>}
+          </section>
+
+          <section className="min-w-0">
+            <h3 className="mb-3 flex items-center gap-2 text-xl font-bold text-white lg:text-lg"><CalendarDays className="h-5 w-5 text-emerald-200" />{isFilipino ? 'Paparating na outreach' : 'Upcoming outreach'}</h3>
+            {outreach.length > 0 ? (
+              <ul className="bullet-list my-0 text-base leading-7 text-emerald-50 lg:text-sm lg:leading-6">
+                {outreach.map((program) => <li key={program.id}><strong>{isFilipino ? program.titleFil : program.title}</strong><span className="mt-1 flex items-start gap-1.5 text-sm text-emerald-100 lg:text-xs"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />{program.location}</span></li>)}
+              </ul>
+            ) : <p className="text-base text-emerald-50 lg:text-sm">{isFilipino ? 'Wala pang naka-iskedyul na outreach.' : 'No outreach programs are currently scheduled.'}</p>}
+          </section>
+          </div>
         </div>
       </div>
-
       {viewingImage && createPortal(
         <div
           role="dialog"
@@ -191,7 +149,7 @@ export const PublicInformation: React.FC = () => {
           className="fixed inset-0 z-[70] flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-slate-950/90 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-8"
           onMouseDown={(event) => { if (event.target === event.currentTarget) setViewingImage(null); }}
         >
-          <button type="button" onClick={() => setViewingImage(null)} aria-label={isFilipino ? 'Isara ang larawan' : 'Close image'} className="absolute right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
+          <button type="button" onClick={() => setViewingImage(null)} aria-label="Close image" className="absolute right-[max(0.75rem,env(safe-area-inset-right))] top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
             <span className="text-xl leading-none">×</span>
           </button>
           <img src={viewingImage.url} alt={viewingImage.alt} className="block h-auto w-auto max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] max-w-[calc(100vw-2rem)] object-contain" />

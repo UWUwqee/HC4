@@ -1,10 +1,10 @@
-import React, { FormEvent, useEffect, useRef, useState } from 'react';
-import { useAuth, useUser } from '@clerk/react';
-import { CalendarClock, ChevronLeft, MessageCircle, Send, X } from 'lucide-react';
+import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, MessageCircle, Send, X } from 'lucide-react';
+import { useAuth } from '@clerk/react';
 import { useHealthCenter } from '../context/HealthCenterContext';
 import { formatAppointmentTime } from '../appointmentSchedule';
 
-interface ChatAppointment {
+interface UserAppointment {
   id: string;
   reference_code: string;
   patient_name: string;
@@ -15,7 +15,7 @@ interface ChatAppointment {
   chat_status: string;
 }
 
-interface ChatMessage {
+interface UserMessage {
   id: string;
   appointment_id: string;
   sender_role: string;
@@ -24,270 +24,247 @@ interface ChatMessage {
   created_at: string;
 }
 
-interface ChatResponse {
-  appointments: ChatAppointment[];
-  messages: ChatMessage[];
-}
+const WEBSITE_ASSISTANT_ACKNOWLEDGMENT = 'Got your message! Thanks for reaching out. Our Pateros HealthConnect assistant will reply any minute with information based on published health center listings.';
 
-async function chatRequest(getToken: () => Promise<string | null>, body?: Record<string, unknown>) {
-  const token = await getToken();
-  if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
-  return fetch('/api/admin', {
-    method: body ? 'POST' : 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-    cache: 'no-store',
-  });
-}
+const isAutomatedReminder = (message: UserMessage) => message.sender_role === 'admin'
+  && (message.message.startsWith('This is an automated reminder.')
+    || message.message.startsWith('Reminder: Your appointment'));
+
+const getDisplayMessage = (message: string) => {
+  const legacyConfirmation = message.match(
+    /^Your appointment for (.+) on (\d{4}-\d{2}-\d{2}) at (.+?) has been automatically confirmed\. You can view this schedule in your appointment chat\./,
+  );
+  if (!legacyConfirmation) return message;
+
+  const [, service, date, time] = legacyConfirmation;
+  return `This is an automated message.\n\nYour appointment for ${service} on ${date} at ${time} has been automatically confirmed. You can view the schedule in your appointment chat.\n\nFilipino:\nAwtomatikong mensahe ito. Kumpirmado na ang iyong appointment para sa ${service} sa ${date}, ganap na ${time}. Maaari mong tingnan ang iskedyul sa chat ng iyong appointment.`;
+};
 
 export const UserAppointmentChat: React.FC = () => {
   const { getToken } = useAuth();
-  const { user } = useUser();
-  const { language, messagesOpen, setMessagesOpen } = useHealthCenter();
-  const isFilipino = language === 'fil';
-  const [appointments, setAppointments] = useState<ChatAppointment[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
-  const [messageDraft, setMessageDraft] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
+  const { messagesOpen, setMessagesOpen, markAppointmentMessagesRead } = useHealthCenter();
+  const [appointments, setAppointments] = useState<UserAppointment[]>([]);
+  const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [optimisticMessage, setOptimisticMessage] = useState<UserMessage | null>(null);
+  const [selectedId, setSelectedId] = useState('');
+  const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
-  const lastStatuses = useRef<Record<string, string>>({});
+  const [lastStatuses, setLastStatuses] = useState<Record<string, string>>({});
+  const [requestedReferenceCode, setRequestedReferenceCode] = useState('');
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantError, setAssistantError] = useState('');
+  const conversationRef = useRef<HTMLDivElement>(null);
+
+  const loadChat = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const response = await fetch('/api/admin', { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error('Appointment chat could not be loaded.');
+      const data = await response.json() as { appointments: UserAppointment[]; messages: UserMessage[] };
+      const normalizedAppointments = data.appointments.map((appointment) => ({
+        ...appointment,
+        status: String(appointment.status).toLowerCase(),
+        chat_status: String(appointment.chat_status || 'closed'),
+      }));
+      normalizedAppointments.forEach((appointment) => {
+        const previousStatus = lastStatuses[appointment.id];
+        if (previousStatus && previousStatus !== appointment.status && appointment.status !== 'missed') {
+          window.dispatchEvent(new CustomEvent('appointment-status-change', { detail: { status: appointment.status, referenceCode: appointment.reference_code } }));
+        }
+      });
+      setLastStatuses(Object.fromEntries(normalizedAppointments.map((appointment) => [appointment.id, appointment.status])));
+      setAppointments(normalizedAppointments);
+      setMessages(data.messages.filter((message) => !isAutomatedReminder(message)));
+      setError('');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Appointment chat could not be loaded.');
+    }
+  };
 
   useEffect(() => {
     if (!messagesOpen) return;
-    let active = true;
-    setLoading(true);
+    void loadChat();
+    const timer = window.setInterval(() => void loadChat(), 3000);
+    return () => window.clearInterval(timer);
+  }, [messagesOpen]);
 
-    const loadMessages = async () => {
+  useEffect(() => {
+    const openAppointmentMessage = (event: Event) => {
+      const { referenceCode } = (event as CustomEvent<{ referenceCode?: unknown }>).detail ?? {};
+      if (typeof referenceCode !== 'string') return;
+      setRequestedReferenceCode(referenceCode);
+      setSelectedId('');
+      setMessagesOpen(true);
+    };
+
+    window.addEventListener('open-appointment-message', openAppointmentMessage);
+    return () => window.removeEventListener('open-appointment-message', openAppointmentMessage);
+  }, [setMessagesOpen]);
+
+  useEffect(() => {
+    if (!requestedReferenceCode) return;
+    const appointment = appointments.find((item) => item.reference_code === requestedReferenceCode);
+    if (!appointment) return;
+    setSelectedId(appointment.id);
+    setRequestedReferenceCode('');
+  }, [appointments, requestedReferenceCode]);
+
+  const selected = useMemo(() => appointments.find((appointment) => appointment.id === selectedId), [appointments, selectedId]);
+  const selectedMessages = useMemo(() => messages.filter((message) => message.appointment_id === selectedId), [messages, selectedId]);
+  const visibleMessages = useMemo(() => {
+    let visible = selectedMessages;
+    const optimisticIsSelected = optimisticMessage?.appointment_id === selectedId;
+    if (optimisticIsSelected && !selectedMessages.some((message) => message.id === optimisticMessage.id)) {
+      visible = [...visible, optimisticMessage];
+    }
+    if (assistantLoading && optimisticIsSelected && selected
+      && !selectedMessages.some((message) => message.id === `${optimisticMessage.id}-ack`)) {
+      visible = [...visible, {
+        id: `${optimisticMessage.id}-ack`,
+        appointment_id: selectedId,
+        sender_role: 'assistant',
+        sender_name: 'Website Assistant',
+        message: WEBSITE_ASSISTANT_ACKNOWLEDGMENT,
+        created_at: new Date(new Date(optimisticMessage.created_at).getTime() + 1).toISOString(),
+      }];
+    }
+    return visible;
+  }, [assistantLoading, optimisticMessage, selected, selectedId, selectedMessages]);
+  const latestSelectedMessageId = selectedMessages.at(-1)?.id;
+
+  useEffect(() => {
+    if (!messagesOpen || !selected || !latestSelectedMessageId) return;
+    void markAppointmentMessagesRead(selected.id).catch((caught) => {
+      setError(caught instanceof Error ? caught.message : 'Messages could not be marked as read.');
+    });
+  }, [messagesOpen, selected?.id, latestSelectedMessageId, markAppointmentMessagesRead]);
+
+  useEffect(() => {
+    if (!messagesOpen || !selected) return;
+    const conversation = conversationRef.current;
+    if (conversation) conversation.scrollTop = conversation.scrollHeight;
+  }, [messagesOpen, selectedId, visibleMessages.length, assistantLoading]);
+
+  if (!messagesOpen) return null;
+
+  const sendAssistantMessage = async (event: FormEvent) => {
+    event.preventDefault();
+    const question = draft.trim();
+    if (!selected || !question || assistantLoading) return;
+    setError('');
+    setAssistantError('');
+    setAssistantLoading(true);
+    const clientMessageId = crypto.randomUUID();
+    setOptimisticMessage({
+      id: clientMessageId,
+      appointment_id: selected.id,
+      sender_role: 'user',
+      sender_name: selected.patient_name,
+      message: question,
+      created_at: new Date().toISOString(),
+    });
+    setDraft('');
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Sign in to ask the website assistant.');
+      const response = await fetch('/api/website-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ appointmentId: selected.id, question, clientMessageId }),
+      });
+      const responseBody = await response.text();
+      let result: { error?: string } = {};
       try {
-        const response = await chatRequest(getToken);
-        if (!response.ok) throw new Error('Messages could not be loaded.');
-        const data = await response.json() as ChatResponse;
-        if (!active) return;
-        const nextStatuses: Record<string, string> = {};
-        data.appointments.forEach((appointment) => {
-          const status = appointment.status.toLowerCase();
-          const previousStatus = lastStatuses.current[appointment.id];
-          if (previousStatus && previousStatus !== status) {
-            window.dispatchEvent(new CustomEvent('appointment-status-change', {
-              detail: { status, referenceCode: appointment.reference_code },
-            }));
-          }
-          nextStatuses[appointment.id] = status;
-        });
-        lastStatuses.current = nextStatuses;
-        setAppointments(data.appointments);
-        setMessages(data.messages);
-        setSelectedAppointmentId((current) => (
-          current && data.appointments.some((appointment) => appointment.id === current)
-            ? current
-            : ''
-        ));
-        setError('');
-      } catch (caught) {
-        if (active) setError(caught instanceof Error ? caught.message : 'Messages could not be loaded.');
-      } finally {
-        if (active) setLoading(false);
+        result = JSON.parse(responseBody) as { error?: string };
+      } catch {
+        if (response.ok) throw new Error('The website assistant returned an invalid response. Please try again.');
       }
-    };
-
-    void loadMessages();
-    const timer = window.setInterval(() => void loadMessages(), 5000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [messagesOpen, getToken]);
-
-  const selectedAppointment = appointments.find((appointment) => appointment.id === selectedAppointmentId);
-  const selectedMessages = messages.filter((message) => message.appointment_id === selectedAppointmentId);
-  const latestAdminMessage = [...selectedMessages].reverse().find((message) => message.sender_role === 'admin');
+      if (!response.ok && !result.error) {
+        throw new Error(`The website assistant is temporarily unavailable (HTTP ${response.status}). Please try again.`);
+      }
+      if (!response.ok) throw new Error(result.error || 'The website assistant could not respond.');
+      await loadChat();
+    } catch (caught) {
+      setDraft(question);
+      setAssistantError(caught instanceof Error ? caught.message : 'The website assistant could not respond.');
+    } finally {
+      setOptimisticMessage(null);
+      setAssistantLoading(false);
+    }
+  };
 
   const cancelSelectedAppointment = async () => {
-    if (!selectedAppointment || !['pending', 'confirmed'].includes(selectedAppointment.status.toLowerCase())) return;
-    if (!window.confirm(isFilipino ? 'Kanselahin ang appointment na ito?' : 'Cancel this appointment?')) return;
+    if (!selected || !['pending', 'confirmed'].includes(selected.status)) return;
+    if (!window.confirm('Cancel this appointment request?')) return;
     setError('');
     try {
-      const response = await chatRequest(getToken, {
-        action: 'patient_cancel',
-        appointmentId: selectedAppointment.id,
+      const token = await getToken();
+      if (!token) throw new Error('Sign in to cancel this appointment.');
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'patient_cancel', appointmentId: selected.id }),
       });
-      if (!response.ok) {
-        const result = await response.json() as { error?: string };
-        throw new Error(result.error || 'Appointment could not be cancelled.');
-      }
-      const refresh = await chatRequest(getToken);
-      if (!refresh.ok) throw new Error('Appointment was cancelled, but the conversation could not be refreshed.');
-      const data = await refresh.json() as ChatResponse;
-      setAppointments(data.appointments);
-      setMessages(data.messages);
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || 'Appointment could not be cancelled.');
+      await loadChat();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Appointment could not be cancelled.');
     }
   };
 
-  useEffect(() => {
-    if (!messagesOpen || !selectedAppointmentId || !latestAdminMessage) return;
-    void chatRequest(getToken, { action: 'mark_chat_read', appointmentId: selectedAppointmentId });
-  }, [messagesOpen, selectedAppointmentId, latestAdminMessage?.created_at, getToken]);
-
-  const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const message = messageDraft.trim();
-    if (!selectedAppointment || selectedAppointment.chat_status !== 'open' || !message || sending) return;
-
-    setSending(true);
-    setError('');
-    try {
-      const response = await chatRequest(getToken, {
-        action: 'message',
-        appointmentId: selectedAppointment.id,
-        senderName: user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Patient',
-        message,
-      });
-      if (!response.ok) {
-        const data = await response.json() as { error?: string };
-        throw new Error(data.error || 'Message could not be sent.');
-      }
-      setMessageDraft('');
-      const refresh = await chatRequest(getToken);
-      if (!refresh.ok) throw new Error('Message sent, but the conversation could not be refreshed.');
-      const data = await refresh.json() as ChatResponse;
-      setAppointments(data.appointments);
-      setMessages(data.messages);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Message could not be sent.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  if (!messagesOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setMessagesOpen(false); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="patient-messages-title" className="flex max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-5xl flex-col overflow-hidden border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:max-h-[92dvh]">
-        <header className="flex shrink-0 items-center justify-between border-b border-[#dfe6e1] bg-white px-4 py-3 sm:px-5 sm:py-4">
-          <div>
-            <div className="text-xs font-bold text-[#17645c]">{isFilipino ? 'Iyong mga appointment' : 'Your appointments'}</div>
-            <h2 id="patient-messages-title" className="mt-1 text-xl font-bold text-[#17312e]">{isFilipino ? 'Mga mensahe' : 'Messages'}</h2>
-          </div>
-          <button type="button" onClick={() => setMessagesOpen(false)} aria-label={isFilipino ? 'Isara ang mga mensahe' : 'Close messages'} className="flex h-11 w-11 items-center justify-center text-[#66736f] hover:bg-[#f1f4f1]">
-            <X className="h-5 w-5" />
-          </button>
+    <section role="dialog" aria-modal="true" aria-labelledby="messages-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setMessagesOpen(false); }}>
+      <div className="flex h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-[calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-[#dfe6e1] bg-[#f8faf7] shadow-2xl sm:h-[min(420px,72dvh)] sm:max-h-[72dvh]">
+        <header className="flex shrink-0 items-center justify-between border-b border-[#e8eeea] bg-white px-4 py-2 sm:px-5">
+          <div><div className="text-[10px] font-bold text-[#17645c]">Your appointments</div><h2 id="messages-title" className="mt-0.5 text-base font-bold text-[#17312e]">Messages</h2></div>
+          <button type="button" onClick={() => setMessagesOpen(false)} aria-label="Close messages" className="rounded-full p-2 text-[#66736f] transition-colors hover:bg-[#f1f4f1]"><X className="h-5 w-5" /></button>
         </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className={`${selectedAppointment ? 'hidden lg:block' : 'block'} border-b border-[#dfe6e1] bg-white lg:border-b-0 lg:border-r`}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden bg-white lg:grid-cols-[190px_minmax(0,1fr)]">
+          <aside className={`${selected ? 'hidden lg:block' : 'block'} min-h-0 overflow-y-auto border-b border-[#dfe6e1] lg:border-b-0 lg:border-r`}>
             {appointments.map((appointment) => (
-              <button
-                key={appointment.id}
-                type="button"
-                onClick={() => setSelectedAppointmentId(appointment.id)}
-                className={`w-full border-b border-[#edf1ee] px-4 py-4 text-left hover:bg-[#f4f7f4] ${
-                  selectedAppointmentId === appointment.id ? 'bg-[#edf3ef]' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-[#17312e]">{appointment.service_name}</div>
-                    <div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div>
-                  </div>
-                  <span className={`shrink-0 px-2 py-1 text-[10px] font-bold uppercase ${
-                    appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800'
-                      : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800'
-                        : appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800'
-                          : 'bg-amber-100 text-amber-800'
-                  }`}>{appointment.status}</span>
-                </div>
-                <div className="mt-2 text-xs text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
+              <button key={appointment.id} type="button" onClick={() => { setAssistantError(''); setSelectedId(appointment.id); }} className={`w-full border-b border-[#edf1ee] px-3 py-3 text-left transition-colors hover:bg-[#f4f7f4] ${selectedId === appointment.id ? 'bg-[#edf3ef]' : ''}`}>
+                <div className="flex items-start justify-between gap-3"><div><div className="text-sm font-bold text-[#17312e]">{appointment.service_name}</div><div className="mt-1 text-xs text-[#66736f]">{appointment.reference_code}</div></div><span className={`px-2 py-1 text-[10px] font-bold uppercase ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : appointment.status === 'completed' ? 'bg-sky-100 text-sky-800' : appointment.status === 'missed' || appointment.status === 'cancelled' || appointment.status === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{appointment.status}</span></div>
+                <div className="mt-1.5 text-[11px] text-[#66736f]">{appointment.preferred_date} · {formatAppointmentTime(appointment.preferred_time)}</div>
               </button>
             ))}
-            {appointments.length === 0 && (
-              <p className="p-4 text-sm text-[#66736f]">
-                {loading
-                  ? (isFilipino ? 'Naglo-load ng mga appointment...' : 'Loading appointments...')
-                  : (isFilipino ? 'Wala pang appointment conversation.' : 'No appointment conversations yet.')}
-              </p>
-            )}
+            {appointments.length === 0 && <p className="p-4 text-sm text-[#66736f]">No conversations yet</p>}
           </aside>
 
-          <div className={`${selectedAppointment ? 'block' : 'hidden'} min-w-0 lg:block`}>
-            {!selectedAppointment ? (
-              <div className="flex min-h-[360px] items-center justify-center px-6 text-center text-sm text-[#66736f]">
-                {isFilipino ? 'Pumili ng appointment para makita ang mga mensahe.' : 'Select an appointment to view its messages.'}
-              </div>
-            ) : (
-              <div className="flex min-h-[min(420px,55dvh)] flex-col">
-                <div className="flex min-w-0 items-center gap-2 border-b border-[#dfe6e1] bg-white px-3 py-3 sm:px-4">
-                  <button type="button" onClick={() => setSelectedAppointmentId('')} className="shrink-0 lg:hidden" aria-label={isFilipino ? 'Bumalik sa mga pag-uusap' : 'Back to conversations'}>
-                    <ChevronLeft className="h-5 w-5 text-[#17645c]" />
-                  </button>
-                  <MessageCircle className="h-4 w-4 shrink-0 text-[#17645c]" aria-hidden="true" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-bold">{selectedAppointment.service_name}</div>
-                    <div className="text-[11px] text-[#66736f]">{selectedAppointment.chat_status === 'closed'
-                      ? (isFilipino ? 'Sarado ang chat ng kawani' : 'Chat closed by clinic staff')
-                      : (isFilipino ? 'Bukas ang chat' : 'Chat open')}</div>
+          <div className={`${selected ? 'block' : 'hidden'} h-full min-h-0 min-w-0 overflow-hidden lg:block`}>
+            {!selected ? <div className="flex h-full min-h-[280px] items-center justify-center text-sm text-[#66736f]">Select a conversation</div> : (
+              <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                <div className="sticky top-0 z-10 flex min-w-0 shrink-0 items-center justify-between gap-2 border-b border-[#e7ece9] bg-white px-3 py-2 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <button type="button" onClick={() => setSelectedId('')} className="shrink-0 rounded-full p-1 hover:bg-[#f1f4f1] lg:hidden" aria-label="Back to conversations"><ChevronLeft className="h-5 w-5 text-[#17645c]" /></button>
+                    <MessageCircle className="h-4 w-4 shrink-0 text-[#17645c]" />
+                    <div className="min-w-0"><div className="truncate text-[13px] font-bold">{selected.service_name}</div><div className="text-[10px] text-[#66736f]">{selected.chat_status === 'closed' ? 'Chat closed by clinic staff' : 'Chat open'}</div></div>
                   </div>
+                  {['pending', 'confirmed'].includes(selected.status) && <button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-8 shrink-0 rounded-md border border-rose-200 px-2.5 text-[11px] font-bold text-rose-700 transition-colors hover:bg-rose-50">Cancel appointment</button>}
                 </div>
-
-                {['pending', 'confirmed'].includes(selectedAppointment.status.toLowerCase()) && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dfe6e1] bg-white px-3 py-2 sm:px-4">
-                    <p className="text-[11px] text-[#66736f]">
-                      {isFilipino ? 'Kanselahin kung kailangan mong baguhin ang appointment.' : 'Cancel if you need to change your appointment.'}
-                    </p>
-                    <button type="button" onClick={() => void cancelSelectedAppointment()} className="min-h-10 border border-rose-200 px-3 text-xs font-bold text-rose-700 hover:bg-rose-50">
-                      <CalendarClock className="mr-1 inline h-4 w-4" aria-hidden="true" />{isFilipino ? 'Kanselahin' : 'Cancel appointment'}
-                    </button>
-                  </div>
-                )}
-
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-white px-3 py-4 sm:px-4" aria-live="polite">
-                  {loading && selectedMessages.length === 0 && <p role="status" className="text-sm text-[#66736f]">{isFilipino ? 'Naglo-load ng mga mensahe...' : 'Loading messages...'}</p>}
-                  {selectedMessages.map((message) => (
-                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <article className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-sm ${
-                        message.sender_role === 'user' ? 'rounded-br-sm bg-[#17645c] text-white' : 'rounded-bl-sm bg-[#edf1ee] text-[#17312e]'
-                      }`}>
-                        <p>{message.message}</p>
-                        <p className={`mt-1 text-[10px] ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#66736f]'}`}>{message.sender_name}</p>
-                      </article>
-                    </div>
+                <div ref={conversationRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain bg-[#f7f9f8] px-3 py-2.5 sm:px-4">
+                  {visibleMessages.map((message) => (
+                    <div key={message.id} className={`flex ${message.sender_role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[min(82%,28rem)] rounded-2xl px-2.5 py-1.5 text-[12px] leading-[1.4] ${message.sender_role === 'user' ? 'rounded-br-md bg-[#17645c] text-white' : 'rounded-bl-md border border-[#e8eeea] bg-white text-[#17312e]'}`}><div className="whitespace-pre-line break-words">{getDisplayMessage(message.message)}</div><div className={`mt-0.5 text-[9px] leading-3 ${message.sender_role === 'user' ? 'text-white/70' : 'text-[#87938c]'}`}>{message.id === optimisticMessage?.id ? 'Sending…' : message.sender_name}</div></div></div>
                   ))}
-                  {!loading && selectedMessages.length === 0 && (
-                    <p className="flex min-h-40 items-center justify-center text-center text-xs text-[#87938c]">
-                      {selectedAppointment.chat_status === 'deleted'
-                        ? (isFilipino ? 'Tinanggal ang pag-uusap na ito para sa parehong account.' : 'This conversation was deleted for both accounts.')
-                        : (isFilipino ? 'Wala pang mensahe sa usapang ito.' : 'No messages for this request yet.')}
-                    </p>
-                  )}
-                  {error && <p role="alert" className="text-xs text-rose-800">{error}</p>}
                 </div>
-
-                {selectedAppointment.chat_status === 'open' ? (
-                  <form onSubmit={sendMessage} className="flex shrink-0 gap-2 border-t border-[#dfe6e1] bg-white p-2.5 sm:p-3">
-                    <input value={messageDraft} onChange={(event) => setMessageDraft(event.target.value)} maxLength={2000} aria-label={isFilipino ? 'Isulat ang mensahe' : 'Message clinic staff'} placeholder={isFilipino ? 'Isulat ang mensahe...' : 'Message clinic staff'} className="h-11 min-w-0 flex-1 rounded-full border border-[#cfd8d2] px-4 text-sm outline-none focus:border-[#17645c]" />
-                    <button type="submit" disabled={sending || !messageDraft.trim()} aria-label={isFilipino ? 'Ipadala ang mensahe' : 'Send message'} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white hover:bg-[#104f49] disabled:cursor-not-allowed disabled:opacity-50">
-                      <Send className="h-4 w-4" />
-                    </button>
-                  </form>
-                ) : (
-                  <div className="border-t border-[#dfe6e1] bg-white px-4 py-4 text-center text-xs font-bold text-[#66736f]">
-                    {selectedAppointment.chat_status === 'deleted'
-                      ? (isFilipino ? 'Tinanggal ang pag-uusap na ito at hindi na mabubuksan.' : 'This conversation has been deleted and cannot be reopened.')
-                      : (isFilipino ? 'Sarado ang chat na ito ng kawani ng klinika.' : 'This conversation is closed by clinic staff.')}
+                {selected.chat_status === 'open' ? (
+                  <div className="shrink-0 border-t border-[#e7ece9] bg-white px-3 py-1.5 sm:px-4">
+                    {assistantError && <p role="alert" className="mb-2 text-xs text-rose-800">{assistantError}</p>}
+                    <form onSubmit={sendAssistantMessage} className="flex items-center gap-2">
+                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1200} placeholder="Ask about the health center website" className="h-9 min-w-0 flex-1 rounded-full border border-[#d8e0db] bg-[#f7f9f8] px-3.5 text-xs outline-none transition-colors placeholder:text-[#9aa59f] focus:border-[#17645c] focus:bg-white" />
+                      <button type="submit" disabled={!draft.trim() || assistantLoading} aria-label="Send question to website assistant" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17645c] text-white transition-colors hover:bg-[#124f49] disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-3.5 w-3.5" /></button>
+                    </form>
                   </div>
-                )}
+                ) : <div className="shrink-0 border-t border-[#e7ece9] bg-white px-4 py-3 text-center text-xs font-semibold text-[#66736f]">This chat has been closed by clinic staff</div>}
               </div>
             )}
           </div>
         </div>
-      </section>
-    </div>
+        {error && <p role="alert" className="shrink-0 border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-800">{error}</p>}
+        </div>
+      </div>
+    </section>
   );
 };

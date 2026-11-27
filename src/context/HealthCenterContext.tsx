@@ -1,353 +1,187 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/react';
-import { DEFAULT_CLINIC_PUBLIC_SETTINGS, SERVICES_DATA } from '../data/healthCenterData';
-import type { ClinicPublicSettings, PublicSiteContent } from '../types';
+import {
+  Language,
+  AppointmentBooking,
+  PatientRecord,
+  ChatMessage,
+  ContactSubmission,
+  PublicSiteContent,
+} from '../types';
+import { translations } from '../i18n/translations';
+import { DEFAULT_CLINIC_PUBLIC_SETTINGS, NEWS_UPDATES, OUTREACH_PROGRAMS, SERVICES_DATA } from '../data/healthCenterData';
 
-export type Language = 'en' | 'fil';
-export type AppointmentRequestAvailability = 'checking' | 'available' | 'pending' | 'confirmed' | 'error';
-
-export interface PatientAppointment {
-  id: string;
-  referenceCode: string;
-  programTitle: string;
-  patientName: string;
-  zone: string;
-  status: 'Pending' | 'Confirmed' | 'Rejected' | 'Cancelled' | string;
-  appointmentDate: string;
-  timeSlot: string;
-}
-
-const DEFAULT_SITE_CONTENT: PublicSiteContent = {
-  services: SERVICES_DATA,
-  news: [],
-  outreach: [],
-  settings: DEFAULT_CLINIC_PUBLIC_SETTINGS,
-};
-
-type TranslationSet = Record<keyof (typeof TRANSLATIONS_EN)['en'], string>;
-
-const TRANSLATIONS_EN = {
-  en: {
-    brand: 'Delfin Salonga Health Center',
-    contactTitle: 'Visit Delfin Salonga Health Center',
-    newsTitle: 'Health center updates',
-    newsSubtitle: 'Announcements and public health advisories.',
-    newsSearchPlaceholder: 'Search updates...',
-    btnReadArticle: 'Read update',
-    btnCloseArticle: 'Close',
-    outreachTitle: 'Community health programs',
-    outreachSubtitle: 'Current outreach programs from Delfin Salonga Health Center.',
-    formFullName: 'Full name',
-    formPhone: 'Phone number',
-    formEmail: 'Email address',
-    formZone: 'Zone or barangay',
-    formDate: 'Preferred date',
-    formTimeSlot: 'Preferred time',
-    analyticsTitle: 'Health center analytics',
-    analyticsSubtitle: 'Available service and community health data.',
-    kpiConsultations: 'Consultations',
-    kpiSatisfaction: 'Patient satisfaction',
-    kpiOptScreening: 'OPT screening',
-    kpiMedsDispensed: 'Medicines dispensed',
-    chartServiceVolume: 'Service volume',
-    chartZoneFootfall: 'Service area activity',
-    chartNutritionStatus: 'Nutrition status',
-    chartInventoryStatus: 'Medicine inventory',
-  },
-};
-
-const TRANSLATIONS_FIL = {
-  fil: {
-    brand: 'Delfin Salonga Health Center',
-    contactTitle: 'Bumisita sa Delfin Salonga Health Center',
-    newsTitle: 'Mga update ng health center',
-    newsSubtitle: 'Mga anunsyo at pampublikong pabatid pangkalusugan.',
-    newsSearchPlaceholder: 'Maghanap ng mga update...',
-    btnReadArticle: 'Basahin',
-    btnCloseArticle: 'Isara',
-    outreachTitle: 'Mga programang pangkalusugan sa komunidad',
-    outreachSubtitle: 'Mga kasalukuyang programa ng Delfin Salonga Health Center.',
-    formFullName: 'Buong pangalan',
-    formPhone: 'Numero ng telepono',
-    formEmail: 'Email address',
-    formZone: 'Zone o barangay',
-    formDate: 'Piling petsa',
-    formTimeSlot: 'Piling oras',
-    analyticsTitle: 'Datos ng health center',
-    analyticsSubtitle: 'Available na datos ng serbisyo at kalusugan sa komunidad.',
-    kpiConsultations: 'Konsultasyon',
-    kpiSatisfaction: 'Kasiyahan ng pasyente',
-    kpiOptScreening: 'OPT screening',
-    kpiMedsDispensed: 'Gamot na naipamahagi',
-    chartServiceVolume: 'Dami ng serbisyo',
-    chartZoneFootfall: 'Aktibidad sa service area',
-    chartNutritionStatus: 'Kalagayan sa nutrisyon',
-    chartInventoryStatus: 'Imbentaryo ng gamot',
-  },
-};
-
-const TRANSLATIONS: Record<Language, TranslationSet> = {
-  en: TRANSLATIONS_EN.en,
-  fil: TRANSLATIONS_FIL.fil,
-};
-
-interface AppointmentApiRow {
-  id?: unknown;
-  reference_code?: unknown;
-  service_name?: unknown;
-  patient_name?: unknown;
-  zone?: unknown;
-  status?: unknown;
-  preferred_date?: unknown;
-  preferred_time?: unknown;
-}
-
-interface HealthCenterContextValue {
-  t: (typeof TRANSLATIONS)['en'];
+interface HealthCenterContextType {
   language: Language;
-  setLanguage: (language: Language) => void;
+  setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
+  t: typeof translations.en;
   activeSection: string;
   setActiveSection: (section: string) => void;
-  siteContent: PublicSiteContent;
-  siteContentError: string;
-  clinicOpen: boolean | null;
-  clinicStatusError: string;
-  appointmentRequestAvailability: AppointmentRequestAvailability;
+  appointments: AppointmentBooking[];
+  bookAppointment: (data: Omit<AppointmentBooking, 'id' | 'referenceCode' | 'status' | 'createdAt'>) => AppointmentBooking;
+  cancelAppointment: (id: string) => void;
+
+  patientRecords: PatientRecord[];
+  activePatient: PatientRecord | null;
+  registerPatientRecord: (data: Omit<PatientRecord, 'id' | 'patientNumber' | 'vitalsHistory' | 'prescriptions' | 'radiologyReports'>) => PatientRecord;
+  setActivePatient: (patient: PatientRecord | null) => void;
+  addPatientVitals: (patientId: string, vitals: { bloodPressure: string; heartRate: number; weightKg: number; heightCm: number; notes: string }) => void;
+  addPatientPrescription: (patientId: string, rx: { medication: string; dosage: string; frequency: string }) => void;
+  patientMessages: ChatMessage[];
+  sendPatientMessage: (text: string) => void;
+  contactSubmissions: ContactSubmission[];
+  submitContact: (data: { name: string; phone: string; email: string; zone: string; topic: string; message: string }) => ContactSubmission;
+  bookingModalOpen: boolean;
+  setBookingModalOpen: (open: boolean) => void;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
   isSignedIn: boolean;
-  bookingModalOpen: boolean;
-  setBookingModalOpen: (open: boolean) => void;
-  selectedProgramForBooking: string;
-  openBookingForProgram: (programId: string) => void;
-  markAppointmentRequestStatus: (status: 'pending' | 'confirmed') => void;
-  appointments: PatientAppointment[];
-  cancelAppointment: (id: string) => Promise<void>;
   messagesOpen: boolean;
   setMessagesOpen: (open: boolean) => void;
+  appointmentRequestAvailability: 'checking' | 'available' | 'pending' | 'confirmed' | 'error';
+  markAppointmentRequestStatus: (status: 'pending' | 'confirmed') => void;
+  siteContent: PublicSiteContent;
+  siteContentError: string;
   unreadAdminMessageCount: number;
   unreadMessagesError: string;
-  notificationToast: string;
-  setNotificationToast: Dispatch<SetStateAction<string>>;
+  markAppointmentMessagesRead: (appointmentId: string) => Promise<void>;
+  selectedProgramForBooking: string | null;
+  openBookingForProgram: (programId: string) => void;
+  notificationToast: string | null;
+  setNotificationToast: (msg: string | null) => void;
 }
 
-const HealthCenterContext = createContext<HealthCenterContextValue | null>(null);
+const HealthCenterContext = createContext<HealthCenterContextType | undefined>(undefined);
 
-function normalizedStatus(value: unknown): PatientAppointment['status'] {
-  const status = typeof value === 'string' ? value.toLowerCase() : '';
-  if (status === 'confirmed') return 'Confirmed';
-  if (status === 'rejected') return 'Rejected';
-  if (status === 'cancelled' || status === 'canceled') return 'Cancelled';
-  return 'Pending';
-}
-
-function appointmentFromApi(row: AppointmentApiRow): PatientAppointment {
-  const referenceCode = typeof row.reference_code === 'string' ? row.reference_code : '';
-  return {
-    id: referenceCode || String(row.id ?? ''),
-    referenceCode,
-    programTitle: typeof row.service_name === 'string' ? row.service_name : '',
-    patientName: typeof row.patient_name === 'string' ? row.patient_name : '',
-    zone: typeof row.zone === 'string' ? row.zone : '',
-    status: normalizedStatus(row.status),
-    appointmentDate: typeof row.preferred_date === 'string' ? row.preferred_date : '',
-    timeSlot: typeof row.preferred_time === 'string' ? row.preferred_time : '',
-  };
-}
-
-export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const HealthCenterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { getToken, isSignedIn } = useAuth();
-  const [language, setLanguageState] = useState<Language>(() => (
-    localStorage.getItem('delfin-salonga-language') === 'fil' ? 'fil' : 'en'
-  ));
-  const [activeSection, setActiveSectionState] = useState('overview');
-  const [siteContent, setSiteContent] = useState(DEFAULT_SITE_CONTENT);
-  const [siteContentError, setSiteContentError] = useState('');
-  const [clinicOpen, setClinicOpen] = useState<boolean | null>(null);
-  const [clinicStatusError, setClinicStatusError] = useState('');
-  const [appointmentRequestAvailability, setAppointmentRequestAvailability] = useState<AppointmentRequestAvailability>(
-    isSignedIn ? 'checking' : 'available',
-  );
-  const [authModalOpen, setAuthModalOpenState] = useState(false);
-  const [bookingModalOpenState, setBookingModalOpenState] = useState(false);
-  const [selectedProgramForBooking, setSelectedProgramForBooking] = useState('');
-  const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem('mfhc_language');
+    return (saved === 'fil' || saved === 'en') ? saved : 'en';
+  });
+
+  const [activeSection, setActiveSection] = useState<string>('overview');
+
+
+  const [appointments, setAppointments] = useState<AppointmentBooking[]>([]);
+
+
+  const [patientRecords, setPatientRecords] = useState<PatientRecord[]>([]);
+
+  const [activePatient, setActivePatientState] = useState<PatientRecord | null>(null);
+
+
+  const [chatStore, setChatStore] = useState<Record<string, ChatMessage[]>>({});
+
+  const [contactSubmissions, setContactSubmissions] = useState<ContactSubmission[]>([]);
+
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [appointmentRequestAvailability, setAppointmentRequestAvailability] = useState<'checking' | 'available' | 'pending' | 'confirmed' | 'error'>(() => isSignedIn ? 'checking' : 'available');
+  const [authModalOpen, setAuthModalOpenState] = useState(false);
+  const [siteContent, setSiteContent] = useState<PublicSiteContent>(() => ({
+    services: SERVICES_DATA,
+    news: NEWS_UPDATES,
+    outreach: OUTREACH_PROGRAMS,
+    settings: DEFAULT_CLINIC_PUBLIC_SETTINGS,
+  }));
+  const [siteContentError, setSiteContentError] = useState('');
   const [unreadAdminMessageCount, setUnreadAdminMessageCount] = useState(0);
   const [unreadMessagesError, setUnreadMessagesError] = useState('');
-  const [notificationToast, setNotificationToast] = useState('');
+  const [selectedProgramForBooking, setSelectedProgramForBooking] = useState<string | null>(() => sessionStorage.getItem('mfhc_booking_program'));
+  const [notificationToast, setNotificationToast] = useState<string | null>(null);
+  const previousAppointmentStatuses = useRef(new Map<string, string>());
 
-  const setActiveSection = (section: string) => setActiveSectionState(section);
-  const setLanguage = (nextLanguage: Language) => {
-    localStorage.setItem('delfin-salonga-language', nextLanguage);
-    setLanguageState(nextLanguage);
-  };
-  const toggleLanguage = () => setLanguage(language === 'en' ? 'fil' : 'en');
+  useEffect(() => {
+    localStorage.setItem('mfhc_language', language);
+    document.documentElement.lang = language === 'fil' ? 'fil' : 'en';
+  }, [language]);
 
-  const setAuthModalOpen = useCallback((open: boolean) => {
+  const setAuthModalOpen = (open: boolean) => {
     if (!open) {
       sessionStorage.removeItem('mfhc_booking_after_signin');
       sessionStorage.removeItem('mfhc_booking_program');
-      setSelectedProgramForBooking('');
+      setSelectedProgramForBooking(null);
     }
     setAuthModalOpenState(open);
-  }, []);
-  const setBookingModalOpen = useCallback((open: boolean) => {
+  };
+
+  const setBookingAvailabilityModal = (open: boolean) => {
     if (!open) {
-      setBookingModalOpenState(false);
-      setSelectedProgramForBooking('');
+      setBookingModalOpen(false);
+      setSelectedProgramForBooking(null);
+      sessionStorage.removeItem('mfhc_booking_program');
       return;
     }
-    if (appointmentRequestAvailability !== 'available') return;
     if (!isSignedIn) {
       sessionStorage.setItem('mfhc_booking_after_signin', 'true');
-      if (selectedProgramForBooking) sessionStorage.setItem('mfhc_booking_program', selectedProgramForBooking);
       setAuthModalOpenState(true);
       return;
     }
-    setBookingModalOpenState(true);
-  }, [appointmentRequestAvailability, isSignedIn, selectedProgramForBooking]);
-  const openBookingForProgram = useCallback((programId: string) => {
     if (appointmentRequestAvailability !== 'available') return;
-    setSelectedProgramForBooking(programId);
-    if (!isSignedIn) {
-      sessionStorage.setItem('mfhc_booking_after_signin', 'true');
-      sessionStorage.setItem('mfhc_booking_program', programId);
-      setAuthModalOpenState(true);
-      return;
-    }
-    setBookingModalOpenState(true);
-  }, [appointmentRequestAvailability, isSignedIn]);
+    setBookingModalOpen(true);
+  };
+
   const markAppointmentRequestStatus = useCallback((status: 'pending' | 'confirmed') => {
     setAppointmentRequestAvailability(status);
   }, []);
 
   useEffect(() => {
-    let active = true;
-    if (!getToken) {
-      setAppointmentRequestAvailability('error');
-      setClinicStatusError('Sign in to load clinic status.');
-      return () => { active = false; };
+    if (!isSignedIn) {
+      setAppointmentRequestAvailability('available');
+      return;
     }
-
-    const requestWithToken = async (path: string) => {
-      const token = await getToken();
-      if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
-      return fetch(path, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-    };
-
-    const loadSiteContent = async () => {
+    let active = true;
+    let loading = false;
+    const refreshAppointmentRequestAvailability = async () => {
+      if (loading || document.visibilityState === 'hidden') return;
+      loading = true;
       try {
-        const response = await fetch('/api/content', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Public clinic information could not be loaded.');
-        const data = await response.json() as Partial<PublicSiteContent>;
-        if (!active) return;
-        setSiteContentError('');
-        const nextContent = {
-          services: Array.isArray(data.services) ? data.services : DEFAULT_SITE_CONTENT.services,
-          news: Array.isArray(data.news) ? data.news : [],
-          outreach: Array.isArray(data.outreach) ? data.outreach : [],
-          settings: data.settings ? { ...DEFAULT_CLINIC_PUBLIC_SETTINGS, ...data.settings } : DEFAULT_CLINIC_PUBLIC_SETTINGS,
+        const token = await getToken();
+        if (!token) throw new Error("Clerk sign-in is required.");
+        const response = await fetch('/api/appointments', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        const result = await response.json() as {
+          appointments?: Array<{ status: string; reference_code: string }>;
+          error?: string;
         };
-        setSiteContent((current) => JSON.stringify(current) === JSON.stringify(nextContent) ? current : nextContent);
-      } catch {
-        if (active) setSiteContentError('Clinic information could not be refreshed.');
-        return;
-      }
-    };
-
-    const loadClinicStatus = async () => {
-      try {
-        const response = isSignedIn
-          ? await requestWithToken('/api/admin?mode=clinic_status')
-          : await fetch('/api/admin?mode=clinic_status', { cache: 'no-store' });
-        const result = await response.json() as { clinicOpen?: boolean; error?: string };
-        if (!response.ok || typeof result.clinicOpen !== 'boolean') {
-          throw new Error(result.error || 'Clinic status could not be loaded.');
-        }
-        if (!active) return;
-        setClinicOpen(result.clinicOpen);
-        setClinicStatusError('');
-      } catch (caught) {
-        if (!active) return;
-        setClinicStatusError(caught instanceof Error ? caught.message : 'Clinic status could not be loaded.');
-      }
-    };
-
-    const loadAppointments = async () => {
-      if (!isSignedIn) {
-        setAppointments([]);
-        setAppointmentRequestAvailability('available');
-        return;
-      }
-      try {
-        const response = await requestWithToken('/api/appointments');
-        const result = await response.json() as { appointments?: AppointmentApiRow[]; error?: string };
         if (!response.ok || !Array.isArray(result.appointments)) {
-          throw new Error(result.error || 'Appointment requests could not be loaded.');
+          throw new Error(result.error || 'Appointment request status could not be checked.');
         }
-        if (!active) return;
-        const nextAppointments = result.appointments.map(appointmentFromApi);
-        setAppointments(nextAppointments);
-        setAppointmentRequestAvailability(nextAppointments.some((appointment) => appointment.status === 'Pending')
-          ? 'pending'
-          : nextAppointments.some((appointment) => appointment.status === 'Confirmed')
-            ? 'confirmed'
-            : 'available');
-        if (sessionStorage.getItem('mfhc_booking_after_signin') === 'true') {
-          sessionStorage.removeItem('mfhc_booking_after_signin');
-          const programId = sessionStorage.getItem('mfhc_booking_program') ?? '';
-          sessionStorage.removeItem('mfhc_booking_program');
-          if (programId) setSelectedProgramForBooking(programId);
-          if (!nextAppointments.some((appointment) => ['Pending', 'Confirmed'].includes(appointment.status))) {
-            setBookingModalOpenState(true);
+        if (active) {
+          const statuses = result.appointments.map((appointment) => appointment.status.toLowerCase());
+          result.appointments.forEach((appointment) => {
+            const status = appointment.status.toLowerCase();
+            const previousStatus = previousAppointmentStatuses.current.get(appointment.reference_code);
+            if (previousStatus && previousStatus !== 'missed' && status === 'missed') {
+              setNotificationToast(`Appointment ${appointment.reference_code} was marked as missed. You can now submit a new appointment request.`);
+            }
+            previousAppointmentStatuses.current.set(appointment.reference_code, status);
+          });
+          const availability = statuses.includes('pending')
+            ? 'pending'
+            : statuses.includes('confirmed') ? 'confirmed' : 'available';
+          setAppointmentRequestAvailability(availability);
+          if (sessionStorage.getItem('mfhc_booking_after_signin') === 'true') {
+            sessionStorage.removeItem('mfhc_booking_after_signin');
+            sessionStorage.removeItem('mfhc_booking_program');
+            if (availability === 'available') setBookingModalOpen(true);
           }
         }
       } catch {
-        if (active) setAppointmentRequestAvailability((current) => current === 'pending' || current === 'confirmed' ? current : 'error');
-      }
-    };
-
-    const loadUnreadMessages = async () => {
-      if (!isSignedIn) {
-        setUnreadAdminMessageCount(0);
-        setUnreadMessagesError('');
-        return;
-      }
-      try {
-        const response = await requestWithToken('/api/admin?mode=unread_messages');
-        const result = await response.json() as { unreadCount?: number; error?: string };
-        if (!response.ok || typeof result.unreadCount !== 'number') {
-          throw new Error(result.error || 'Unread messages could not be loaded.');
-        }
-        if (!active) return;
-        setUnreadAdminMessageCount(result.unreadCount);
-        setUnreadMessagesError('');
-      } catch (caught) {
-        if (active) setUnreadMessagesError(caught instanceof Error ? caught.message : 'Unread messages could not be loaded.');
-      }
-    };
-
-    let refreshInProgress = false;
-    const refreshWebsiteData = async () => {
-      if (refreshInProgress || document.visibilityState === 'hidden') return;
-      refreshInProgress = true;
-      try {
-        await Promise.all([loadSiteContent(), loadClinicStatus(), loadAppointments(), loadUnreadMessages()]);
+        if (active) setAppointmentRequestAvailability('error');
       } finally {
-        refreshInProgress = false;
+        loading = false;
       }
     };
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refreshWebsiteData();
+      if (document.visibilityState === 'visible') void refreshAppointmentRequestAvailability();
     };
-    void refreshWebsiteData();
-    const timer = window.setInterval(() => void refreshWebsiteData(), 3500);
+    void refreshAppointmentRequestAvailability();
+    const timer = window.setInterval(() => void refreshAppointmentRequestAvailability(), 15_000);
     document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       active = false;
@@ -356,58 +190,437 @@ export const HealthCenterProvider: React.FC<{ children: ReactNode }> = ({ childr
     };
   }, [getToken, isSignedIn]);
 
-  const cancelAppointment = async (id: string) => {
-    const appointment = appointments.find((item) => item.id === id);
-    if (!appointment) return;
+  useEffect(() => {
+    let active = true;
+    let loading = false;
+    const loadSiteContent = async () => {
+      if (loading || document.visibilityState === 'hidden') return;
+      loading = true;
+      try {
+        const response = await fetch('/api/content', { cache: 'no-store' });
+        const result = await response.json() as PublicSiteContent & { error?: string };
+        if (!response.ok || !Array.isArray(result.services) || !Array.isArray(result.news)
+          || !Array.isArray(result.outreach) || !result.settings) {
+          throw new Error(result.error || 'Public website content could not be loaded.');
+        }
+        if (!active) return;
+        setSiteContent(result);
+        setSiteContentError('');
+      } catch (caught) {
+        if (!active) return;
+        setSiteContentError(caught instanceof Error ? caught.message : 'Public website content could not be loaded.');
+      } finally {
+        loading = false;
+      }
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void loadSiteContent();
+    };
+    void loadSiteContent();
+    const timer = window.setInterval(() => void loadSiteContent(), 60_000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, []);
+
+  const refreshUnreadAdminMessages = useCallback(async () => {
+    if (!isSignedIn) return;
     const token = await getToken();
-    if (!token) throw new Error('Your Clerk sign-in session could not be verified.');
-    const response = await fetch('/api/appointments', {
+    if (!token) throw new Error("Clerk sign-in is required.");
+    const response = await fetch('/api/admin?mode=unread_messages', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    const result = await response.json() as { unreadCount?: number; error?: string };
+    if (!response.ok || typeof result.unreadCount !== 'number') {
+      throw new Error(result.error || 'Unread messages could not be loaded.');
+    }
+    setUnreadAdminMessageCount(result.unreadCount);
+    setUnreadMessagesError('');
+  }, [getToken, isSignedIn]);
+
+  const markAppointmentMessagesRead = useCallback(async (appointmentId: string) => {
+    const token = await getToken();
+    if (!token) throw new Error("Clerk sign-in is required.");
+    const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: 'cancel', referenceCode: appointment.referenceCode }),
+      body: JSON.stringify({ action: 'mark_chat_read', appointmentId }),
     });
     const result = await response.json() as { error?: string };
-    if (!response.ok) throw new Error(result.error || 'Appointment could not be cancelled.');
-    setAppointments((current) => current.map((item) => item.id === id ? { ...item, status: 'Cancelled' } : item));
+    if (!response.ok) throw new Error(result.error || 'Messages could not be marked as read.');
+    await refreshUnreadAdminMessages();
+  }, [getToken, refreshUnreadAdminMessages]);
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setUnreadAdminMessageCount(0);
+      setUnreadMessagesError('');
+      return;
+    }
+    let active = true;
+    const refresh = async () => {
+      try {
+        await refreshUnreadAdminMessages();
+      } catch (caught) {
+        if (!active) return;
+        setUnreadMessagesError(caught instanceof Error ? caught.message : 'Unread messages could not be loaded.');
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 15_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [refreshUnreadAdminMessages, isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const loadData = async () => {
+      try {
+        const token = await getToken();
+        if (!token) throw new Error("Clerk sign-in is required.");
+        const [patientsResponse, contactsResponse, appointmentsResponse] = await Promise.all([
+          fetch('/api/health-data', { headers: { Authorization: `Bearer ${token}`, 'x-resource': 'patients' } }),
+          fetch('/api/health-data', { headers: { Authorization: `Bearer ${token}`, 'x-resource': 'contacts' } }),
+          fetch('/api/appointments', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (appointmentsResponse.ok) {
+          const result = await appointmentsResponse.json() as { appointments?: Array<{ id: string; reference_code: string; service_name: string; patient_name: string; zone: string; preferred_date: string; preferred_time: string; status: string; created_at: string }> };
+          setAppointments((result.appointments ?? []).map((item) => ({
+            id: item.id,
+            referenceCode: item.reference_code,
+            programId: item.service_name,
+            programTitle: item.service_name,
+            patientName: item.patient_name,
+            dateOfBirth: '',
+            contactNumber: '',
+            email: '',
+            zone: item.zone,
+            appointmentDate: item.preferred_date,
+            timeSlot: item.preferred_time,
+            status: item.status.toLowerCase() === 'cancelled'
+              ? 'Cancelled'
+              : item.status.toLowerCase() === 'rejected'
+                ? 'Rejected'
+                : item.status.toLowerCase() === 'completed'
+                  ? 'Completed'
+                : item.status.toLowerCase() === 'confirmed'
+                  ? 'Confirmed'
+                  : 'Pending',
+            createdAt: item.created_at,
+          })));
+        }
+        if (patientsResponse.ok) {
+          const result = await patientsResponse.json() as { patients: PatientRecord[] };
+          setPatientRecords(result.patients);
+          const chatMap: Record<string, ChatMessage[]> = {};
+          result.patients.forEach((patient) => {
+            const record = patient as PatientRecord & { messages?: ChatMessage[] };
+            chatMap[patient.id] = record.messages ?? [];
+          });
+          setChatStore(chatMap);
+        }
+        if (contactsResponse.ok) {
+          const result = await contactsResponse.json() as { submissions: Array<{ id: string; ticket_id: string; name: string; phone: string; email: string; zone: string; topic: string; message: string; status: 'Received' | 'Under Review'; created_at: string }> };
+          setContactSubmissions(result.submissions.map((item) => ({
+            id: item.id,
+            ticketId: item.ticket_id,
+            name: item.name,
+            phone: item.phone,
+            email: item.email ?? '',
+            zone: item.zone,
+            topic: item.topic,
+            message: item.message,
+            submittedAt: item.created_at,
+            status: item.status,
+          })));
+        }
+      } catch {
+        setNotificationToast('Could not load saved health records from the database.');
+      }
+    };
+    void loadData();
+  }, [getToken, isSignedIn]);
+
+
+  useEffect(() => {
+    if (notificationToast) {
+      const timer = setTimeout(() => setNotificationToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notificationToast]);
+
+  const toggleLanguage = () => {
+    setLanguageState(prev => prev === 'en' ? 'fil' : 'en');
+  };
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+  };
+
+  const t = translations[language];
+
+  const authorizedPost = async (url: string, body: unknown) => {
+    const token = await getToken();
+    if (!token) throw new Error('Clerk sign-in is required.');
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+  };
+
+  const bookAppointment = (data: Omit<AppointmentBooking, 'id' | 'referenceCode' | 'status' | 'createdAt'>): AppointmentBooking => {
+    const refCode = `MFHC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newAppointment: AppointmentBooking = {
+      ...data,
+      id: `apt-${Date.now()}`,
+      referenceCode: refCode,
+      status: 'Confirmed',
+      createdAt: new Date().toISOString()
+    };
+
+    void authorizedPost('/api/appointments', {
+        patientName: newAppointment.patientName,
+        phone: newAppointment.contactNumber,
+        email: newAppointment.email,
+        zone: newAppointment.zone,
+        serviceId: newAppointment.programId,
+        preferredDate: newAppointment.appointmentDate,
+        preferredTime: newAppointment.timeSlot,
+        privacyConsent: true,
+      }).catch(() => setNotificationToast('Appointment could not be saved to the database.'));
+
+    setAppointments(prev => [newAppointment, ...prev]);
+    setNotificationToast(
+      language === 'fil'
+        ? `Naitakda ang iskedyul: ${refCode}`
+        : `Appointment confirmed: ${refCode}`
+    );
+    return newAppointment;
+  };
+
+  const cancelAppointment = (id: string) => {
+    const appointment = appointments.find((item) => item.id === id);
+    if (!appointment) return;
+    void authorizedPost('/api/appointments', { action: 'cancel', referenceCode: appointment.referenceCode }).then((response) => {
+      if (!response.ok) throw new Error('Appointment could not be cancelled.');
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'Cancelled' as const } : a));
+      setNotificationToast(language === 'fil' ? 'Kinansela ang iskedyul.' : 'Appointment cancelled.');
+    }).catch((error) => setNotificationToast(error instanceof Error ? error.message : 'Appointment could not be cancelled.'));
+  };
+
+  const registerPatientRecord = (data: Omit<PatientRecord, 'id' | 'patientNumber' | 'vitalsHistory' | 'prescriptions' | 'radiologyReports'>): PatientRecord => {
+    const patNo = `MFHC-PAT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newPatient: PatientRecord = {
+      ...data,
+      id: `pat-${Date.now()}`,
+      patientNumber: patNo,
+      vitalsHistory: [],
+      prescriptions: [],
+      radiologyReports: []
+    };
+
+    void authorizedPost('/api/health-data', { resource: 'patient', ...newPatient, patientNumber: patNo }).then((response) => {
+      if (!response.ok) throw new Error('Patient record could not be saved.');
+      setPatientRecords(prev => [newPatient, ...prev]);
+      setActivePatientState(newPatient);
+      setNotificationToast(
+        language === 'fil'
+          ? `Narehistro ang pasyente: ${patNo}`
+          : `Patient record registered: ${patNo}`
+      );
+    }).catch((error) => setNotificationToast(error instanceof Error ? error.message : 'Patient record could not be saved.'));
+
+    return newPatient;
+  };
+
+  const setActivePatient = (patient: PatientRecord | null) => {
+    setActivePatientState(patient);
+  };
+
+  const addPatientVitals = (patientId: string, vitals: { bloodPressure: string; heartRate: number; weightKg: number; heightCm: number; notes: string }) => {
+    const entry = {
+      ...vitals,
+      date: new Date().toISOString().split('T')[0],
+      recordedBy: 'Nurse / Triage Desk'
+    };
+
+    void authorizedPost('/api/health-data', { resource: 'vital', patientId, ...entry }).catch(() => setNotificationToast('Vitals could not be saved to the database.'));
+
+    setPatientRecords(prev => prev.map(p => {
+      if (p.id === patientId) {
+        return {
+          ...p,
+          vitalsHistory: [entry, ...p.vitalsHistory]
+        };
+      }
+      return p;
+    }));
+
+    if (activePatient && activePatient.id === patientId) {
+      setActivePatientState(prev => prev ? {
+        ...prev,
+        vitalsHistory: [entry, ...prev.vitalsHistory]
+      } : null);
+    }
+
+    setNotificationToast(language === 'fil' ? 'Nai-record ang vitals.' : 'Vitals recorded.');
+  };
+
+  const addPatientPrescription = (patientId: string, rx: { medication: string; dosage: string; frequency: string }) => {
+    const entry = {
+      ...rx,
+      prescribedDate: new Date().toISOString().split('T')[0],
+      nextRefillDate: 'Next Month (30-day supply)',
+      status: 'Available for Pick-up' as const,
+      prescribedBy: 'Tiffany Almuros (Head of Doctors)'
+    };
+
+    void authorizedPost('/api/health-data', { resource: 'prescription', patientId, ...entry }).catch(() => setNotificationToast('Prescription could not be saved to the database.'));
+
+    setPatientRecords(prev => prev.map(p => {
+      if (p.id === patientId) {
+        return {
+          ...p,
+          prescriptions: [entry, ...p.prescriptions]
+        };
+      }
+      return p;
+    }));
+
+    if (activePatient && activePatient.id === patientId) {
+      setActivePatientState(prev => prev ? {
+        ...prev,
+        prescriptions: [entry, ...prev.prescriptions]
+      } : null);
+    }
+
+    setNotificationToast(language === 'fil' ? 'Nai-save ang reseta.' : 'Prescription saved.');
+  };
+
+  const patientMessages = activePatient ? (chatStore[activePatient.id] || []) : [];
+
+  const sendPatientMessage = (text: string) => {
+    if (!text.trim() || !activePatient) return;
+
+    const patientId = activePatient.id;
+    const newMsg: ChatMessage = {
+      id: `m-${Date.now()}`,
+      sender: 'patient',
+      senderName: activePatient.fullName,
+      text: text.trim(),
+      timestamp: 'Just now'
+    };
+
+    const updated = [...(chatStore[patientId] || []), newMsg];
+    setChatStore(prev => ({ ...prev, [patientId]: updated }));
+    void authorizedPost('/api/health-data', { resource: 'message', patientId, sender: newMsg.sender, senderName: newMsg.senderName, senderRole: '', message: newMsg.text }).catch(() => setNotificationToast('Message could not be saved to the database.'));
+
+    setTimeout(() => {
+      const botReply: ChatMessage = {
+        id: `m-${Date.now() + 1}`,
+        sender: 'staff',
+        senderName: 'Ms. Sery Ann G. Ulanday, RN / Clinic Desk',
+        senderRole: 'Mr. Flores Health Center',
+        text: language === 'fil'
+          ? `Natanggap po namin ang mensahe para sa ${activePatient.fullName} (${activePatient.zone}). Bukas ang center Lunes hanggang Biyernes 7AM-4PM.`
+          : `We received your inquiry for ${activePatient.fullName} (${activePatient.zone}). The center is open Monday to Friday, 7:00 AM - 4:00 PM.`,
+        timestamp: 'Just now'
+      };
+
+      setChatStore(current => ({
+        ...current,
+        [patientId]: [...(current[patientId] || []), botReply]
+      }));
+    }, 1000);
+  };
+
+  const submitContact = (data: { name: string; phone: string; email: string; zone: string; topic: string; message: string }): ContactSubmission => {
+    const newSubmission: ContactSubmission = {
+      ...data,
+      id: `cnt-${Date.now()}`,
+      ticketId: `TKT-${Math.floor(10000 + Math.random() * 90000)}`,
+      submittedAt: new Date().toISOString(),
+      status: 'Received'
+    };
+
+    void authorizedPost('/api/health-data', { resource: 'contact', ...newSubmission, ticketId: newSubmission.ticketId }).then((response) => {
+      if (!response.ok) throw new Error('Inquiry could not be saved.');
+      setContactSubmissions(prev => [newSubmission, ...prev]);
+      setNotificationToast(
+        language === 'fil'
+          ? `Naisumite ang katanungan: ${newSubmission.ticketId}`
+          : `Inquiry submitted: ${newSubmission.ticketId}`
+      );
+    }).catch((error) => setNotificationToast(error instanceof Error ? error.message : 'Inquiry could not be saved.'));
+
+    return newSubmission;
+  };
+
+  const openBookingForProgram = (programId: string) => {
+    if (appointmentRequestAvailability !== 'available') return;
+    setSelectedProgramForBooking(programId);
+    if (!isSignedIn) sessionStorage.setItem('mfhc_booking_program', programId);
+    setBookingAvailabilityModal(true);
   };
 
   return (
-    <HealthCenterContext.Provider value={{
-      t: TRANSLATIONS[language],
-      language,
-      setLanguage,
-      toggleLanguage,
-      activeSection,
-      setActiveSection,
-      siteContent,
-      siteContentError,
-      clinicOpen,
-      clinicStatusError,
-      appointmentRequestAvailability,
-      authModalOpen,
-      setAuthModalOpen,
-      isSignedIn: Boolean(isSignedIn),
-      bookingModalOpen: bookingModalOpenState,
-      setBookingModalOpen,
-      selectedProgramForBooking,
-      openBookingForProgram,
-      markAppointmentRequestStatus,
-      appointments,
-      cancelAppointment,
-      messagesOpen,
-      setMessagesOpen,
-      unreadAdminMessageCount,
-      unreadMessagesError,
-      notificationToast,
-      setNotificationToast,
-    }}>
+    <HealthCenterContext.Provider
+      value={{
+        language,
+        setLanguage,
+        toggleLanguage,
+        t,
+        activeSection,
+        setActiveSection,
+        appointments,
+        bookAppointment,
+        cancelAppointment,
+        patientRecords,
+        activePatient,
+        registerPatientRecord,
+        setActivePatient,
+        addPatientVitals,
+        addPatientPrescription,
+        patientMessages,
+        sendPatientMessage,
+        contactSubmissions,
+        submitContact,
+        bookingModalOpen,
+        setBookingModalOpen: setBookingAvailabilityModal,
+        authModalOpen,
+        setAuthModalOpen,
+        isSignedIn: Boolean(isSignedIn),
+        messagesOpen,
+        setMessagesOpen,
+        appointmentRequestAvailability,
+        markAppointmentRequestStatus,
+        siteContent,
+        siteContentError,
+        unreadAdminMessageCount,
+        unreadMessagesError,
+        markAppointmentMessagesRead,
+        selectedProgramForBooking,
+        openBookingForProgram,
+        notificationToast,
+        setNotificationToast
+      }}
+    >
       {children}
     </HealthCenterContext.Provider>
   );
 };
 
-export function useHealthCenter() {
+export const useHealthCenter = () => {
   const context = useContext(HealthCenterContext);
-  if (!context) throw new Error('useHealthCenter must be used within HealthCenterProvider.');
+  if (!context) {
+    throw new Error('useHealthCenter must be used within a HealthCenterProvider');
+  }
   return context;
-}
+};

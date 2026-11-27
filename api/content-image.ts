@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { getContentDatabase, ensureSiteContent } from './site-content-store.ts';
+import { getContentDatabase, ensureSiteContent } from './site-content-store.js';
 
 type ApiRequest = IncomingMessage;
 type ApiResponse = ServerResponse & {

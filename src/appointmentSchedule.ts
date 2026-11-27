@@ -10,13 +10,6 @@ export const APPOINTMENT_TIME_SLOTS = Array.from(
   },
 );
 
-export const APPOINTMENT_TIME_ORDER: Readonly<Record<string, number>> = {
-  morning: 0,
-  afternoon: 12 * 60,
-  'no preference': 24 * 60,
-  ...Object.fromEntries(APPOINTMENT_TIME_SLOTS.map((time) => [time, getAppointmentTimeMinutes(time) ?? 0])),
-};
-
 export function getManilaAppointmentClock(now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Manila',
@@ -42,27 +35,39 @@ export function getEarliestAppointmentDate(now = new Date()) {
   return tomorrow.toISOString().slice(0, 10);
 }
 
+export function getLatestAppointmentDate(now = new Date()) {
+  const { date } = getManilaAppointmentClock(now);
+  const latestDate = new Date(`${date}T12:00:00Z`);
+  latestDate.setUTCDate(latestDate.getUTCDate() + 30);
+  return latestDate.toISOString().slice(0, 10);
+}
+
 export function getAppointmentTimeMinutes(value: string) {
-  if (value === 'morning') return 9 * 60;
-  if (value === 'afternoon') return 12 * 60;
-  if (value === 'no preference') return 24 * 60;
   const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
-export function getAppointmentTimePeriod(value: string) {
-  const minutes = getAppointmentTimeMinutes(value);
-  return minutes !== null && minutes < 12 * 60 ? 'morning' : 'afternoon';
-}
-
 export function isAppointmentTimeAvailable(date: string, time: string, now = new Date()) {
   const slotMinutes = getAppointmentTimeMinutes(time);
-  if (!APPOINTMENT_TIME_SLOTS.includes(time) || slotMinutes === null || date < getEarliestAppointmentDate(now)) return false;
+  if (!APPOINTMENT_TIME_SLOTS.includes(time)
+    || slotMinutes === null
+    || date < getEarliestAppointmentDate(now)
+    || date > getLatestAppointmentDate(now)) return false;
   const clock = getManilaAppointmentClock(now);
   return date !== clock.date || slotMinutes > clock.minutes;
 }
 
+export function getAppointmentTimePeriod(value: string) {
+  if (value === 'morning') return 'morning';
+  if (value === 'afternoon' || value === 'no preference') return 'afternoon';
+  const minutes = getAppointmentTimeMinutes(value);
+  return minutes !== null && minutes < 12 * 60 ? 'morning' : 'afternoon';
+}
+
 export function formatAppointmentTime(value: string) {
+  if (value === 'morning') return 'Morning';
+  if (value === 'afternoon') return 'Afternoon';
+  if (value === 'no preference') return 'Any time';
   const minutes = getAppointmentTimeMinutes(value);
   if (minutes === null) return value;
   const hour = Math.floor(minutes / 60);

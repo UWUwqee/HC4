@@ -15,14 +15,8 @@ export interface AccessibilitySettings {
   reduceMotion: boolean;
 }
 
-interface AccessibilityContextValue {
-  settings: AccessibilitySettings;
-  updateSettings: (patch: Partial<AccessibilitySettings>) => void;
-  applyProfile: (profile: AccessibilityProfile) => void;
-  resetSettings: () => void;
-}
+const STORAGE_KEY = 'pateros_healthconnect_accessibility';
 
-const STORAGE_KEY = 'delfin-salonga-accessibility-settings';
 const defaultSettings: AccessibilitySettings = {
   profile: 'default',
   textScale: 1,
@@ -42,64 +36,46 @@ const profiles: Record<Exclude<AccessibilityProfile, 'default' | 'custom'>, Part
   motor: { largeTouchTargets: true, largeCursor: true, reduceMotion: true },
 };
 
-function readSettings(): AccessibilitySettings {
-  let legacyMode: string | null;
-  let stored: string | null;
-  try {
-    legacyMode = localStorage.getItem('delfin-salonga-accessibility');
-    stored = localStorage.getItem(STORAGE_KEY);
-  } catch (error) {
-    console.error('Accessibility preferences could not be read:', error);
-    return defaultSettings;
-  }
-  const defaults = legacyMode === 'high-contrast'
-    ? { ...defaultSettings, contrast: 'high' as const }
-    : legacyMode === 'large-text'
-      ? { ...defaultSettings, textScale: 1.125 }
-      : defaultSettings;
-  if (!stored) return defaults;
-
-  let value: unknown;
-  try {
-    value = JSON.parse(stored);
-  } catch (error) {
-    console.error('Accessibility preferences could not be parsed:', error);
-    return defaults;
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
-  const settings = value as Record<string, unknown>;
-  const profile = ['default', 'senior', 'visual', 'cognitive', 'motor', 'custom'].includes(String(settings.profile))
-    ? settings.profile as AccessibilityProfile
-    : defaults.profile;
-  const contrast = ['normal', 'high', 'smart'].includes(String(settings.contrast))
-    ? settings.contrast as ContrastMode
-    : defaults.contrast;
-  return {
-    profile,
-    textScale: typeof settings.textScale === 'number' && Number.isFinite(settings.textScale)
-      ? Math.min(1.6, Math.max(0.9, settings.textScale))
-      : defaults.textScale,
-    contrast,
-    highlightLinks: typeof settings.highlightLinks === 'boolean' ? settings.highlightLinks : defaults.highlightLinks,
-    textSpacing: typeof settings.textSpacing === 'boolean' ? settings.textSpacing : defaults.textSpacing,
-    dyslexiaFont: typeof settings.dyslexiaFont === 'boolean' ? settings.dyslexiaFont : defaults.dyslexiaFont,
-    largeCursor: typeof settings.largeCursor === 'boolean' ? settings.largeCursor : defaults.largeCursor,
-    largeTouchTargets: typeof settings.largeTouchTargets === 'boolean' ? settings.largeTouchTargets : defaults.largeTouchTargets,
-    reduceMotion: typeof settings.reduceMotion === 'boolean' ? settings.reduceMotion : defaults.reduceMotion,
-  };
+interface AccessibilityContextValue {
+  settings: AccessibilitySettings;
+  updateSettings: (patch: Partial<AccessibilitySettings>) => void;
+  applyProfile: (profile: AccessibilityProfile) => void;
+  resetSettings: () => void;
 }
 
 const AccessibilityContext = createContext<AccessibilityContextValue | null>(null);
+
+function readSettings(): AccessibilitySettings {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return defaultSettings;
+    const value = stored as Record<string, unknown>;
+    return {
+      ...defaultSettings,
+      profile: ['default', 'senior', 'visual', 'cognitive', 'motor', 'custom'].includes(String(value.profile))
+        ? value.profile as AccessibilityProfile
+        : defaultSettings.profile,
+      textScale: typeof value.textScale === 'number' ? Math.min(1.6, Math.max(0.9, value.textScale)) : 1,
+      contrast: ['normal', 'high', 'smart'].includes(String(value.contrast))
+        ? value.contrast as ContrastMode
+        : defaultSettings.contrast,
+      highlightLinks: typeof value.highlightLinks === 'boolean' ? value.highlightLinks : defaultSettings.highlightLinks,
+      textSpacing: typeof value.textSpacing === 'boolean' ? value.textSpacing : defaultSettings.textSpacing,
+      dyslexiaFont: typeof value.dyslexiaFont === 'boolean' ? value.dyslexiaFont : defaultSettings.dyslexiaFont,
+      largeCursor: typeof value.largeCursor === 'boolean' ? value.largeCursor : defaultSettings.largeCursor,
+      largeTouchTargets: typeof value.largeTouchTargets === 'boolean' ? value.largeTouchTargets : defaultSettings.largeTouchTargets,
+      reduceMotion: typeof value.reduceMotion === 'boolean' ? value.reduceMotion : defaultSettings.reduceMotion,
+    };
+  } catch {
+    return defaultSettings;
+  }
+}
 
 export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState(readSettings);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch (error) {
-      console.error('Accessibility preferences could not be saved:', error);
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     const root = document.documentElement;
     root.dataset.accessibilityContrast = settings.contrast;
     root.dataset.accessibilityHighlightLinks = String(settings.highlightLinks);
@@ -120,13 +96,18 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       setSettings(defaultSettings);
       return;
     }
-    if (profile !== 'custom') setSettings({ ...defaultSettings, ...profiles[profile], profile });
+    if (profile === 'custom') return;
+    setSettings({ ...defaultSettings, ...profiles[profile], profile });
   }, []);
 
   const resetSettings = useCallback(() => setSettings(defaultSettings), []);
-  const value = useMemo(() => ({ settings, updateSettings, applyProfile, resetSettings }), [
-    settings, updateSettings, applyProfile, resetSettings,
-  ]);
+
+  const value = useMemo(() => ({
+    settings,
+    updateSettings,
+    applyProfile,
+    resetSettings,
+  }), [settings, updateSettings, applyProfile, resetSettings]);
 
   return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>;
 };

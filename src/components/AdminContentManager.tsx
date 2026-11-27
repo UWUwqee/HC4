@@ -34,7 +34,7 @@ const fieldsByType: Record<ContentType, Field[]> = {
     { key: 'shortDescFil', label: 'Short description (Filipino)', multiline: true },
     { key: 'fullDesc', label: 'Full details (English)', multiline: true },
     { key: 'fullDescFil', label: 'Full details (Filipino)', multiline: true },
-    { key: 'category', label: 'Category', options: ['checkup', 'maternity', 'family_planning', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'] },
+    { key: 'category', label: 'Category', options: ['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy'] },
     { key: 'schedule', label: 'Schedule (English)', multiline: true },
     { key: 'scheduleFil', label: 'Schedule (Filipino)', multiline: true },
     { key: 'location', label: 'Location' },
@@ -136,9 +136,7 @@ async function optimizeAnnouncementImage(file: File) {
   });
 }
 
-async function postAdminAction(getToken: () => Promise<string | null>, action: string, payload: Record<string, unknown>) {
-  const token = await getToken();
-  if (!token) throw new Error('Sign in as an administrator to manage website content.');
+async function postAdminAction(token: string, action: string, payload: Record<string, unknown>) {
   const response = await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -171,6 +169,11 @@ export const AdminContentManager: React.FC = () => {
   const contentBaselineRef = useRef('');
   const publishedBaselineRef = useRef(true);
   const settingsBaselineRef = useRef('');
+  const postAction = async (action: string, payload: Record<string, unknown>) => {
+    const token = await getToken();
+    if (!token) throw new Error('Sign in as an administrator to manage website content.');
+    return postAdminAction(token, action, payload);
+  };
   selectedIdRef.current = selectedId;
   typeRef.current = type;
   contentRef.current = content;
@@ -328,7 +331,7 @@ export const AdminContentManager: React.FC = () => {
           normalized[field.key] = Math.max(0, Number(content[field.key] ?? 0));
         }
       }
-      await postAdminAction(getToken, 'save_site_content', {
+      await postAction('save_site_content', {
         contentType: type, contentId: selectedId, content: normalized, published,
       });
       const saved = await load();
@@ -355,7 +358,7 @@ export const AdminContentManager: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      await postAdminAction(getToken, 'delete_site_content', { contentType: type, contentId: selectedId });
+      await postAction('delete_site_content', { contentType: type, contentId: selectedId });
       setSelectedId('');
       setContent(emptyContent(type));
       const saved = await load();
@@ -377,7 +380,7 @@ export const AdminContentManager: React.FC = () => {
     setError('');
     setNotice('');
     try {
-      await postAdminAction(getToken, 'save_public_settings', { settings });
+      await postAction('save_public_settings', { settings });
       const saved = await load();
       const settingsMatch = Object.entries(settings).every(([key, value]) => (
         saved.settings[key as keyof ClinicPublicSettings] === value.trim()
@@ -401,7 +404,7 @@ export const AdminContentManager: React.FC = () => {
     setNotice('');
     try {
       const imageData = await optimizeAnnouncementImage(file);
-      const result = await postAdminAction(getToken, 'upload_announcement_image', { contentId: selectedId, imageData });
+      const result = await postAction('upload_announcement_image', { contentId: selectedId, imageData });
       if (typeof result.imageUrl !== 'string') throw new Error('The image upload did not return a valid image URL.');
       setContent((current) => ({ ...current, imageUrl: result.imageUrl }));
       setNotice('Image uploaded. Save content to publish the announcement image.');

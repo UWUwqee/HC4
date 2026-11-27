@@ -1,5 +1,5 @@
 import { createClient } from '@libsql/client';
-import { DEFAULT_CLINIC_PUBLIC_SETTINGS, NEWS_UPDATES, OUTREACH_PROGRAMS, SERVICES_DATA } from '../src/data/healthCenterData.ts';
+import { DEFAULT_CLINIC_PUBLIC_SETTINGS, NEWS_UPDATES, OUTREACH_PROGRAMS, SERVICES_DATA } from '../src/data/healthCenterData.js';
 import type {
   ClinicPublicSettings,
   NewsUpdate,
@@ -59,24 +59,28 @@ export async function ensureSiteContent(db: ReturnType<typeof createClient>) {
     ];
     await db.batch([
       ...seeds.map(({ type, id, value }) => ({
-        sql: `INSERT INTO public_site_content
+        sql: `INSERT OR IGNORE INTO public_site_content
               (content_type, content_id, content_json, published, updated_at, updated_by)
-              VALUES (?, ?, ?, 1, ?, 'system-seed')
-              ON CONFLICT(content_type, content_id) DO UPDATE SET
-                content_json = excluded.content_json, updated_at = excluded.updated_at
-              WHERE public_site_content.updated_by = 'system-seed'`,
+              VALUES (?, ?, ?, 1, ?, 'system-seed')`,
         args: [type, id, JSON.stringify(value), now],
       })),
       ...Object.entries(DEFAULT_CLINIC_PUBLIC_SETTINGS).map(([key, value]) => ({
-        sql: `INSERT INTO clinic_public_settings
-              (setting_key, setting_value, updated_at, updated_by)
-              VALUES (?, ?, ?, 'system-seed')
-              ON CONFLICT(setting_key) DO UPDATE SET
-                setting_value = excluded.setting_value,
-                updated_at = excluded.updated_at,
-                updated_by = excluded.updated_by`,
+        sql: `INSERT OR IGNORE INTO clinic_public_settings
+              (setting_key, setting_value, updated_at, updated_by) VALUES (?, ?, ?, 'system-seed')`,
         args: [key, String(value), now],
       })),
+      {
+        sql: `UPDATE clinic_public_settings
+              SET setting_value = ?, updated_at = ?, updated_by = 'system-seed'
+              WHERE setting_key = 'contactPhone'
+                AND (setting_value IN (?, ?) OR setting_value LIKE '%8424 8370%')`,
+        args: [
+          DEFAULT_CLINIC_PUBLIC_SETTINGS.contactPhone,
+          now,
+          '(02) 8642-5159',
+          '+63 (2) 8643 3486 and +63 (2) 643 3486 / 8424 8370',
+        ],
+      },
     ], 'write');
   })().catch((error: unknown) => {
     initialized = null;
@@ -103,13 +107,9 @@ export async function readSiteContent(db: ReturnType<typeof createClient>, inclu
     settings: { ...DEFAULT_CLINIC_PUBLIC_SETTINGS },
   };
   for (const row of contentResult.rows) {
-    const value = JSON.parse(String(row.content_json)) as unknown;
-    if (row.content_type === 'service') {
-      if (value && typeof value === 'object' && !Array.isArray(value)
-        && String((value as Record<string, unknown>).category).toLowerCase() !== 'vaccination') {
-        content.services.push(value as ServiceDetail);
-      }
-    } else if (row.content_type === 'news') content.news.push(value as NewsUpdate);
+    const value = JSON.parse(String(row.content_json)) as ServiceDetail | NewsUpdate | OutreachProgram;
+    if (row.content_type === 'service') content.services.push(value as ServiceDetail);
+    else if (row.content_type === 'news') content.news.push(value as NewsUpdate);
     else if (row.content_type === 'outreach') content.outreach.push(value as OutreachProgram);
   }
   for (const row of settingsResult.rows) {
@@ -140,7 +140,7 @@ export function validateSiteContent(
     if (typeof value[field] !== 'string' || value[field].length > 5000) return null;
   }
   if (contentType === 'service') {
-    if (!['maternity', 'checkup', 'family_planning', 'immunization', 'dental', 'tb_dots', 'pen_meds', 'pap_smear'].includes(String(value.category))) return null;
+    if (!['maternity', 'nutrition', 'dental', 'animal_bite', 'checkup', 'xray', 'pharmacy'].includes(String(value.category))) return null;
     for (const field of ['keyPersonnel', 'requirements', 'requirementsFil']) {
       if (!Array.isArray(value[field]) || value[field].length > 50
         || value[field].some((entry) => typeof entry !== 'string' || entry.length > 300)) return null;

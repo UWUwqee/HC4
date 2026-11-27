@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { getContentDatabase, readSiteContent } from './site-content-store.ts';
+import { getContentDatabase, readSiteContent } from './site-content-store.js';
 
 type ApiRequest = IncomingMessage;
 type ApiResponse = ServerResponse & {
@@ -14,12 +14,12 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return response.status(405).json({ error: 'Method not allowed.' });
   }
   const db = getContentDatabase();
-  if (!db) return response.status(503).json({ error: 'Turso database is not configured.' });
+  if (!db) return response.status(503).json({ error: 'Public clinic information is temporarily unavailable.' });
   try {
     const { content } = await readSiteContent(db);
     return response.status(200).json(content);
   } catch (error) {
     console.error('Public site content could not be loaded:', error);
-    return response.status(503).json({ error: 'Public clinic information could not be loaded from Turso.' });
+    return response.status(500).json({ error: 'Public clinic information could not be loaded.' });
   }
 }

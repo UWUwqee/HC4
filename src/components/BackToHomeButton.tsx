@@ -5,17 +5,19 @@ import { useHealthCenter } from '../context/HealthCenterContext';
 export const BackToHomeButton: React.FC = () => {
   const { language, setActiveSection } = useHealthCenter();
 
+  const goHome = () => {
+    setActiveSection('overview');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <button
       type="button"
-      onClick={() => {
-        setActiveSection('overview');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }}
-      className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#17645c] hover:text-[#0f4d3c]"
+      onClick={goHome}
+      className="mb-3 inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#0f4d3c] transition-colors hover:bg-[#eaf3ee]"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-      {language === 'fil' ? 'Bumalik sa tahanan' : 'Back to home'}
+      {language === 'fil' ? 'Bumalik sa Home' : 'Back to Home'}
     </button>
   );
 };

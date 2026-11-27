@@ -9,62 +9,87 @@ function appointmentsApiDevPlugin(): Plugin {
   return {
     name: 'appointments-api-dev',
     configureServer(server) {
-      const createApiMiddleware = (modulePath: string, maxBodySize = 1_048_576) => {
-        return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
-          void next;
-          try {
-            const apiRequest = request as typeof request & { body?: unknown; headers: IncomingHttpHeaders };
-            if (request.method === 'POST') {
-              const chunks: Buffer[] = [];
-              let size = 0;
-              for await (const chunk of request) {
-                const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-                size += buffer.length;
-                if (size > maxBodySize) {
-                  response.statusCode = 413;
-                  response.setHeader('Content-Type', 'application/json');
-                  response.end(JSON.stringify({ error: 'Request is too large.' }));
-                  return;
-                }
-                chunks.push(buffer);
-              }
-              if (chunks.length > 0) {
-                try {
-                  apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-                } catch {
-                  apiRequest.body = undefined;
-                }
-              }
-            }
-            const apiResponse = response as typeof response & {
-              status: (code: number) => typeof response;
-              json: (body: unknown) => void;
-            };
-            apiResponse.status = (code) => {
-              response.statusCode = code;
-              return response;
-            };
-            apiResponse.json = (body) => {
-              response.setHeader('Content-Type', 'application/json');
-              response.end(JSON.stringify(body));
-            };
-            const { default: handler } = await server.ssrLoadModule(modulePath);
-            await handler(apiRequest, apiResponse);
-          } catch (error) {
-            console.error(`API route error for ${modulePath}:`, error);
-            response.statusCode = 500;
-            response.setHeader('Content-Type', 'application/json');
-            response.end(JSON.stringify({ error: 'Internal server error.' }));
+      const healthApiMiddleware = async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
+        void next;
+        try {
+          const apiRequest = request as typeof request & { body?: unknown; headers: IncomingHttpHeaders };
+          if (request.method === 'POST') {
+            const chunks: Buffer[] = [];
+            for await (const chunk of request) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
           }
-        };
+          const apiResponse = response as typeof response & { status: (code: number) => typeof response; json: (body: unknown) => void };
+          apiResponse.status = (code) => { response.statusCode = code; return response; };
+          apiResponse.json = (body) => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(body)); };
+          const { default: handler } = await server.ssrLoadModule('/api/health-data.ts');
+          await handler(apiRequest, apiResponse);
+        } catch {
+          response.statusCode = 400;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ error: 'Invalid request.' }));
+        }
       };
+      const adminApiMiddleware = async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
+        void next;
+        try {
+          const apiRequest = request as typeof request & { body?: unknown; headers: IncomingHttpHeaders };
+          if (request.method === 'POST') {
+            const chunks: Buffer[] = [];
+            for await (const chunk of request) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          }
+          const apiResponse = response as typeof response & { status: (code: number) => typeof response; json: (body: unknown) => void };
+          apiResponse.status = (code) => { response.statusCode = code; return response; };
+          apiResponse.json = (body) => { response.setHeader('Content-Type', 'application/json'); response.end(JSON.stringify(body)); };
+          const { default: handler } = await server.ssrLoadModule('/api/admin.ts');
+          await handler(apiRequest, apiResponse);
+        } catch {
+          response.statusCode = 400;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ error: 'Invalid request.' }));
+        }
+      };
+      server.middlewares.use('/api/admin', adminApiMiddleware);
+      server.middlewares.use('/api/health-data', healthApiMiddleware);
+      server.middlewares.use('/api/appointments', async (request, response, next) => {
+        try {
+          const apiRequest = request as typeof request & { body?: unknown };
+          if (request.method === 'POST') {
+            const chunks: Buffer[] = [];
+            let size = 0;
+            for await (const chunk of request) {
+              const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+              size += buffer.length;
+              if (size > 16_384) {
+                response.statusCode = 413;
+                response.end(JSON.stringify({ error: 'Request is too large.' }));
+                return;
+              }
+              chunks.push(buffer);
+            }
+            apiRequest.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          }
+          const apiResponse = response as typeof response & {
+            status: (code: number) => typeof response;
+            json: (body: unknown) => void;
+          };
+          apiResponse.status = (code) => {
+            response.statusCode = code;
+            return response;
+          };
+          apiResponse.json = (body) => {
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify(body));
+          };
 
-      server.middlewares.use('/api/admin', createApiMiddleware('/api/admin.ts'));
-      server.middlewares.use('/api/health-data', createApiMiddleware('/api/health-data.ts'));
-      server.middlewares.use('/api/appointments', createApiMiddleware('/api/appointments.ts'));
-      server.middlewares.use('/api/content-image', createApiMiddleware('/api/content-image.ts'));
-      server.middlewares.use('/api/content', createApiMiddleware('/api/content.ts'));
-      server.middlewares.use('/api/reminders', createApiMiddleware('/api/reminders.ts'));
+          const { default: handler } = await server.ssrLoadModule('/api/appointments.ts');
+          await handler(apiRequest, apiResponse);
+        } catch {
+          response.statusCode = 400;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ error: 'Invalid request body.' }));
+        }
+      });
     },
   };
 }
@@ -72,6 +97,12 @@ function appointmentsApiDevPlugin(): Plugin {
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss(), appointmentsApiDevPlugin()],
+    build: {
+      sourcemap: false,
+    },
+    define: {
+      'import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY': JSON.stringify(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
